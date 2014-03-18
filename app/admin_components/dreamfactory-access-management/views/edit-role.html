@@ -1,0 +1,117 @@
+<div data-ng-click="setActive()">
+
+    <!-- List Style Role Display -->
+    <div class="col-xs-12" data-ng-hide="active || singleRoleActive">
+
+        <div class="row record" data-ng-class="role.dfUIUnsaved ? 'record-warning' : ''">
+            <div class="col-xs-2 col-sm-2 col-md-2 col-lg-1 rounded-left record-id" data-ng-click="selectRecord()" data-ng-model="role.dfUISelected"
+                 data-ng-class="role.dfUISelected ? 'record-id-selected' : ''"
+                 style="text-align: center; padding-top: 8px; padding-bottom: 8px;">
+                <span style="font-size: 24px; font-weight: bold;">{{role.id}}</span>
+                <br>
+                <span class="small">Role Id</span>
+            </div>
+            <div class="col-xs-10 col-sm-10 col-md-10 col-lg-11 rounded-right"
+                 data-ng-class="role.dfUISelected ? 'record-selected' : ''"
+                 data-ng-click="openRecord()" style="padding-top: 5px; padding-bottom: 5px;">
+                <div class="col-xs-12 col-sm-4 col-md-3 col-lg-2">
+                    <p style="margin-bottom: 3px; margin-top: 7px;"><span class="text-muted small">Name: </span></p>
+
+                    <p><span>{{role.name}}</span></p>
+                </div>
+                <div class="col-md-9 col-lg-7 col-sm-8 hidden-xs">
+                    <p style="margin-bottom: 3px; margin-top: 7px;"><span class="text-muted small">Description: </span>
+                    </p>
+
+                    <p><span>{{role.description}}</span></p>
+                </div>
+                <!--
+                <div class="col-md-4 col-lg-3 hidden-sm hidden-xs">
+                    <p style="margin-bottom: 3px; margin-top: 7px;"><span class="text-muted small">Active: </span></p>
+
+                    <p><span>{{role.is_active}}</span></p>
+                </div>
+                -->
+                <div class="col-lg-3 hidden-md hidden-sm hidden-xs">
+                    <p style="margin-bottom: 3px; margin-top: 7px;"><span class="text-muted small">Created: </span></p>
+
+                    <p><span>{{role.created_date}}</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Single role Edit Display -->
+    <div data-ng-show="active">
+
+        <!-- Single role Actions -->
+        <div class="well well-sm">
+            <div class="btn-toolbar">
+                <div class="btn-group pull-right">
+                    <button type="button" class="btn btn-default btn-primary" data-ng-click="closeRecord()">Close</button>
+                    <button type="button" class="btn btn-default btn-primary" data-ng-click="saveRecord()">Save</button>
+                    <button type="button" class="btn btn-default btn-primary" data-ng-click="removeRecord()">Delete</button>
+                    <button type="button" class="btn btn-default btn-primary" data-ng-click="revertRecord()">Revert</button>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="well">
+
+            <!-- Single role Header -->
+            <h3>Edit role: <span class="text-muted">{{role.name}}</span></h3>
+
+            <!-- Single role Edit Form -->
+            <div class="row">
+                <div class="col-xs-12">
+                    <form name="role-edit-{{role.id}}">
+
+                        <div class="col-xs-12">
+                            <div class="form-group">
+                                <label for="role-name">Role Name</label>
+                                <input class="form-control" type="text" id="role-name"
+                                       placeholder="Enter Role Name"
+                                       data-ng-model="role.name">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="first-name">Description</label>
+                                <input class="form-control" type="text" id="first-name" placeholder="Enter Description"
+                                       data-ng-model="role.description">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="role-active">Active</label>
+                                <input type="checkbox" id="role-active" data-ng-model="role.is_active">
+                            </div>
+                        </div>
+
+                        <div class="col-xs-12">
+                            <div class="form-group">
+                                <label for="mass-assign-users">Assign Users to Role</label>
+                                <div id="mass-assign-users">
+                                    <mass-assign-users role-id="{{role.id}}" users="users"></mass-assign-users>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xs-12">
+                            <div class="form-group">
+                                <label for="select-app">Assign A Default App</label>
+                                <div id="select-app">
+                                    <select-app app-model="role.default_app_id" apps="apps"></select-app>
+                                </div>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+            <!-- End Single role Edit Form -->
+        </div>
+    </div>
+    <!-- End Single role Edit Display -->
+
+</div>

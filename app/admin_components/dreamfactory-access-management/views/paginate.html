@@ -1,0 +1,9 @@
+<div data-ng-show="active">
+    <button type="button" class="btn btn-default" data-ng-click="back()">Previous</button>
+    <ul style="margin: 0; display: inline-block">
+        <li style="display:inline-block;" data-ng-repeat="page in totalPages | orderObjectBy: 'number'">
+            <a data-ng-class="{true: 'active', false: ''}[page.active] " style="padding: 10px; border: 1px solid #000;" data-ng-click="gotoPage(page.number)">{{page.number}}</a>
+        </li>
+    </ul>
+    <button type="button" class="btn btn-default" data-ng-click="next()">Next</button>
+</div>

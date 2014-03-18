@@ -1,0 +1,31 @@
+<div class="row">
+
+    <!-- Module Navigation for XS & SM Devices -->
+    <div class="hidden-md hidden-lg">
+        <div data-ng-cloak class="module-navigation-container dropshadow-right"
+             data-ng-hide="toggleModuleNavigationBool">
+            <modaccess-navigation></modaccess-navigation>
+        </div>
+    </div>
+    <!-- End Module Navigation for XS & SM Devices -->
+
+    <!-- Module Navigation for MD Devices and Up -->
+    <div class="col-sm-2 col-md-3 hidden-xs hidden-sm no-padding">
+        <modaccess-navigation></modaccess-navigation>
+    </div>
+    <!-- End Module Navigation for SM Devices and Up -->
+
+    <!-- Display for module sub sections -->
+    <div class="col-sm-12 col-md-9 dropshadow-left no-padding">
+        <div class="row no-margin">
+            <div class="sub-section-panel">
+
+                <users-master></users-master>
+                <roles-master></roles-master>
+
+            </div>
+        </div>
+    </div>
+    <!-- End display for module sub sections -->
+
+</div>

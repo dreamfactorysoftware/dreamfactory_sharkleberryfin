@@ -1,0 +1,397 @@
+/* Welcome to Compass.
+ * In this file you should write your main styles. (or centralize your imports)
+ * Import this file using the following HTML or equivalent:
+ * <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css" /> */
+
+@import "compass/reset";
+@import "compass/css3";
+
+
+
+
+
+
+// Fonts
+$fa-font-path: '../../bower_components/font-awesome/fonts/';
+
+
+
+
+
+// Colors
+$brand-primary: #17191C;
+$brand-success: #5cb85c;
+$brand-info: #5bc0de;
+$brand-warning: #f0ad4e;
+$brand-danger: #d9534f;
+
+$brand-secondary: #484E56;
+$brand-secondary-light: lighten($brand-secondary, 35%);
+$brand-secondary-highlight: #212428;
+
+
+$context-warning: lighten($brand-warning, 30%);
+$context-danger: lighten($brand-danger, 30%);
+$context-selected: lighten($brand-info, 30%);
+
+$gray-darker: lighten(#000, 13.5%);
+$gray-dark: lighten(#000, 20%);
+$gray: lighten(#000, 33.5%);
+
+
+$gray-lighter: lighten($brand-primary, 80%);
+$gray-light: lighten($brand-primary, 60%);
+
+
+// Buttons
+$btn-font-weight: normal;
+$btn-default-color: #333;
+$btn-default-bg: #fff;
+$btn-default-border: #ccc;
+
+$btn-primary-color: #fff;
+$btn-primary-bg: $brand-secondary-light;
+$btn-primary-border: darken($btn-primary-bg, 5%);
+
+$btn-success-color: #fff;
+$btn-success-bg: $brand-success;
+$btn-success-border: darken($btn-success-bg, 5%);
+
+$btn-info-color: #fff;
+$btn-info-bg: $brand-info;
+$btn-info-border: darken($btn-info-bg, 5%);
+
+$btn-warning-color: #fff;
+$btn-warning-bg: $brand-warning;
+$btn-warning-border: darken($btn-warning-bg, 5%);
+
+$btn-danger-color: #fff;
+$btn-danger-bg: $brand-danger;
+$btn-danger-border: darken($btn-danger-bg, 5%);
+
+$btn-link-disabled-color: $gray-light;
+
+
+.red {
+  background: red !important;
+}
+
+
+// Records
+
+.record {
+  border: 1px solid $btn-default-border;
+  @include border-radius(3px);
+  background: #fff;
+  margin-bottom: 5px;
+}
+
+.record:hover {
+  background: $gray-lighter;
+}
+
+.record-warning {
+  background: $context-warning !important;
+}
+
+.record-danger {
+
+  background: $context-danger;
+}
+
+.record-selected {
+  background: $context-selected;
+}
+
+
+
+.record-id {
+  background-color: $brand-secondary-light;
+  color: #fff;
+}
+
+.record-id-selected {
+  background-color: $brand-secondary;
+}
+
+
+
+// Module Navigation
+
+
+.module-navigation {
+
+  ul {
+
+    margin: 0;
+    padding: 0;
+
+    li:first-child {
+
+
+
+    }
+
+    li {
+
+      text-align: left;
+      border-bottom: 1px solid rgba(72,78,86,.75);
+      padding-top: 10px;
+      padding-bottom: 10px;
+      padding-left: 25px;
+
+
+      a {
+
+        color: $brand-secondary;
+      }
+    }
+
+    li:last-child {
+
+      border-top: none;
+    }
+
+    li:hover {
+
+      background: $brand-secondary;
+
+        a {
+
+          color: $brand-secondary-highlight;
+      }
+    }
+  }
+}
+
+
+
+
+// Utility
+
+.rounded {
+  @include border-radius(3px);
+}
+
+.rounded-left {
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
+}
+
+.rounded-right {
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
+}
+
+.no-padding {
+  padding: 0 !important;
+}
+
+.xs-padding {
+  padding: 2px;
+}
+
+.sm-padding-h {
+  padding-right: 10px;
+  padding-left: 10px;
+}
+
+.no-margin {
+  margin: 0 !important;
+}
+
+.xs-margin {
+  margin: 2px;
+}
+
+.no-h-margin {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.no-margin-bottom{
+  margin-bottom: 0 !important;
+}
+
+.dropshadow-left {
+
+  @include box-shadow( 0px 0 20px #17191C !important);
+}
+
+.dropshadow-right {
+  @include box-shadow(0 10px 10px $brand-primary);
+}
+
+
+// Sub Section Panel
+
+.sub-section-panel {
+
+  background: #eee;
+  padding: 20px;
+
+  @include border-radius(3px)
+}
+
+
+// Custom Overrides
+
+.fa-responsive-2x {
+
+  font-size: 2em;
+}
+
+
+
+@import "../../bower_components/bootstrap-sass/lib/bootstrap";
+@import "../../bower_components/font-awesome/scss/font-awesome";
+
+
+
+
+html{
+  height:100%;
+}
+
+body {
+  // needs latest Compass, add '@import "compass"' to your scss
+  background-color: $brand-primary; // Old browsers
+  background-repeat: no-repeat;
+  background-size: cover;
+  overflow-x: hidden;
+}
+
+
+
+@media (min-width: $screen-lg-min) {
+
+  .hide-elem-lg {
+    display: none !important
+  }
+
+  .hide-elem-md, .hide-elem-sm, .hide-elem-xs{
+    display: inline-block;
+  }
+
+}
+
+
+@media (max-width: $screen-lg-min) {
+
+  .hide-elem-md {
+    display: none !important;
+  }
+
+  .hide-elem-lg, .hide-elem-sm, .hide-elem-xs{
+    display: inline-block;
+  }
+
+  .show-elem-md {
+    display: inline-block !important;
+  }
+
+}
+
+
+@media (max-width: $screen-md-min) {
+
+  .hide-elem-sm {
+    display: none !important;
+  }
+
+  .hide-elem-lg, .hide-elem-md, .hide-elem-xs{
+    display: inline-block;
+  }
+
+  .show-elem-sm {
+    display: inline-block !important;
+  }
+  .show-elem-sm-block {
+    display: block !important;
+  }
+
+  .fa-responsive-2x {
+
+    font-size: 4em;
+  }
+
+  .module-navigation {
+
+    ul {
+
+      background: $brand-primary;
+
+      li:first-child {
+
+      }
+
+      li {
+
+        text-align: center;
+        border-bottom: none;
+        padding-left: 0;
+
+      }
+
+      li:last-child {
+
+        border-top: none;
+      }
+    }
+  }
+
+  .module-navigation-container {
+    width: 100px;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
+    background: $brand-primary;
+  }
+
+
+  .module-navigation-container.ng-hide-add,
+  .module-navigation-container.ng-hide-remove {
+    -webkit-transition:0.2s linear all;
+    transition:0.2s linear all;
+
+    /* remember to add this */
+    display:block !important;
+    left: 0;
+
+  }
+
+
+  .module-navigation-container.ng-hide {
+
+    left: -100px;
+  }
+
+}
+
+
+
+@media (max-width: $screen-sm-min) {
+
+  .hide-elem-xs {
+    display: none !important;
+  }
+
+  .hide-elem-lg, .hide-elem-md, .hide-elem-sm{
+    display: inline-block;
+  }
+
+  .show-elem-xs {
+    display: inline-block !important;
+  }
+
+  .fa-responsive-2x {
+
+    font-size: 4em;
+  }
+
+
+}
+
+
+

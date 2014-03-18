@@ -1,0 +1,59 @@
+<div data-ng-show="active">
+    <div data-ng-show="topLevelNavigation" class="well well-sm">
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="btn-toolbar">
+                    <div class="pull-left btn-group show-elem-xs show-elem-sm hide-elem-md hide-elem-lg">
+                        <button type="button" class="btn btn-default btn-primary"
+                                data-ng-click="openModuleNavigation()">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                    </div>
+
+                    <div class="btn-group pull-right">
+                        <button type="button" class="btn btn-default btn-primary" data-ng-click="exportRoles()">
+                            <span class="fa fa-download"></span>
+                            <span class="hide-elem-xs hide-elem-sm">Export</span>
+                        </button>
+                        <button type="button" class="btn btn-default btn-primary" data-ng-click="importRoles()">
+                            <i class="fa fa-upload"></i>
+                            <span class="hide-elem-xs hide-elem-sm">Import</span>
+                        </button>
+                    </div>
+
+                    <div class="btn-group pull-right">
+                        <button type="button" class="btn btn-default btn-primary" data-ng-click="toggleAllRoles()">
+                            <i data-ng-hide="toggleAllUsersBool" class="fa fa-plus"></i>
+                            <i data-ng-show="toggleAllUsersBool" class="fa fa-minus"></i>
+                            <span class="hide-elem-xs">Toggle</span>
+                        </button>
+                        <button type="button" class="btn btn-default btn-primary" data-ng-click="removeRoles()">
+                            <i class="fa fa-times"></i>
+                            <span class="hide-elem-xs">Remove</span>
+                        </button>
+                        <button type="button" class="btn btn-default btn-primary" data-ng-click="saveAllRoles()">
+                            <i class="fa fa-cloud-upload"></i>
+                            <span class="hide-elem-xs">Save All</span>
+                        </button>
+                        <button type="button" class="btn btn-default btn-primary" data-ng-click="revertAllRoles()">
+                            <i class="fa fa-refresh"></i>
+                            <span class="hide-elem-xs">Revert All</span>
+                        </button>
+                        <button type="button" class="btn btn-default btn-primary" data-ng-click="createRole()">
+                            <i class="fa fa-user"></i>
+                            <span class="hide-elem-xs">Create Role</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xs-12">
+            <create-role role="newRole"></create-role>
+            <edit-role role="role" data-ng-repeat="role in roles"></edit-role>
+        </div>
+    </div>
+
+</div>

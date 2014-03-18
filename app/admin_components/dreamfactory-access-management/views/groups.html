@@ -1,0 +1,19 @@
+<div data-ng-show="active">
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <th><input type="checkbox" data-ng-model="selectAll"></th>
+            <th>Group Name</th>
+            <th>Description</th>
+            <th>Last Modified</th>
+            <th>Created On</th>
+            <tr data-ng-repeat="appGroup in appGroups">
+                <td><input type="checkbox" data-ng-model="appGroup.dfUISelected"></td>
+
+                <td data-ng-repeat="prop in appGroup | showOnlyFieldsOrdered: 'name,description,last_modified_date,created_date'">
+                    {{prop}}
+                </td>
+            </tr>
+        </table>
+        <button type="button" class="btn btn-default btn-danger" data-ng-click="removeAppGroups()">Remove</button>
+    </div>
+</div>

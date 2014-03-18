@@ -1,0 +1,22 @@
+<div>
+    <div class="row well-sm">
+        <div class="col-sm-5 col-xs-12 well no-padding"
+             style="background: #fff; height: 150px; overflow-x: hidden; overflow-y:scroll;">
+            <ul>
+                <li class="xs-padding sm-padding-h" data-ng-class="user.dfUISelected ? 'record-selected' : ''" data-ng-click="toggleUserSelected(user)" data-ng-repeat="user in usersWithOutRole">{{user.display_name}}</li>
+            </ul>
+        </div>
+        <div class="col-sm-2 col-xs-12">
+            <button type="button" data-ng-click="assignRole()" class="btn btn-default btn-block"><i class="fa fa-forward"></i></button>
+            <button type="button" data-ng-click="unassignRole()" class="btn btn-default btn-block"><i class="fa fa-backward"></i></button>
+        </div>
+
+        <div class="col-sm-5 col-xs-12 well no-padding"
+             style="background: #fff; height: 150px; overflow-x: hidden; overflow-y:scroll;">
+            <ul>
+                <li class="xs-padding sm-padding-h" data-ng-class="user.dfUISelected ? 'record-selected' : ''" data-ng-click="toggleUserSelected(user)" data-ng-repeat="user in usersWithRole">{{user.display_name}}</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
