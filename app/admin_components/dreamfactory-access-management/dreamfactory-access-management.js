@@ -14,10 +14,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
         }])
     .controller('AccessManagementCtrl', ['$scope', '$q', 'DreamFactory', function ($scope, $q, DreamFactory) {
 
-        // @todo
-        // Need to get DreamFactory to bootstrap so it's ready when we need to make calls.
-        // Trying to prefetch data and then pass through a controller to make available for
-        // all directives.  Seems to be the way to go if I can get DreamFactory to load first.
+        // TODO: Filter out current user  Probably need to store a reference to the current user on the main app scope
     }])
     .directive('modaccessNavigation', ['MODAUTH_ASSET_PATH',
         function (MODAUTH_ASSET_PATH) {
@@ -28,14 +25,15 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 templateUrl: MODAUTH_ASSET_PATH + 'views/navigation.html'
             }
         }])
-    .directive('accessManagement', ['MODAUTH_ASSET_PATH', '$q', 'DreamFactory', 'accessManagementEventsService', 'accessManagementDataService',
-        function (MODAUTH_ASSET_PATH, $q, DreamFactory, accessManagementEventsService, accessManagementDataService) {
+    .directive('accessManagement', ['MODAUTH_ASSET_PATH', '$q', 'DreamFactory', 'accessManagementEventsService', 'accessManagementRulesService',
+        function (MODAUTH_ASSET_PATH, $q, DreamFactory, accessManagementEventsService, accessManagementRulesService) {
 
             return {
                 restrict: 'E',
                 templateUrl: MODAUTH_ASSET_PATH + 'views/access-management.html',
                 scope: {},
                 controller: function ($scope) {
+
 
                     $scope.activeView = 'users';
                     $scope.toggleModuleNavigationBool = true;
@@ -46,12 +44,15 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                     // Create a short name
                     $scope.es = accessManagementEventsService.module;
+                    $scope.rs = accessManagementRulesService;
 
+
+                    // INIT DEF
                     $scope.init = function () {
                         if (DreamFactory.isReady()) {
-                            $scope.$broadcast($scope.es.broadcast.getRoles);
-                            $scope.$broadcast($scope.es.broadcast.getUsers);
-                            $scope.$broadcast($scope.es.broadcast.getApps);
+                            $scope._getRoles();
+                            $scope._getUsers();
+                            $scope._getApps();
                         }
                     };
 
@@ -60,6 +61,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     $scope.changeView = function (viewIdStr) {
 
                         $scope.$broadcast('view:change:view', viewIdStr);
+
                     };
 
 
@@ -97,13 +99,20 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         return records;
                     };
 
-                    $scope._getRoles = function (requestObj) {
+                    $scope._toggleEachRecord = function (dataObj, bool) {
+
+                        angular.forEach(dataObj, function (value, index) {
+                            value['dfUISelected'] = bool;
+                        });
+                    };
+
+                    $scope._getRolesData = function (requestObj) {
 
                         var defer = $q.defer();
 
                         requestObj = requestObj || {
                             fields: '*',
-                            limit: 100
+                            limit: scope.rs.recordsLimit
                         };
 
                         DreamFactory.api.system.getRoles(requestObj,
@@ -120,13 +129,13 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         return defer.promise;
                     };
 
-                    $scope._getUsers = function (requestObj) {
+                    $scope._getUsersData = function (requestObj) {
 
                         var defer = $q.defer();
 
                         requestObj = requestObj || {
                             fields: '*',
-                            limit: 100
+                            limit: $scope.rs.recordsLimit
                         };
 
                         DreamFactory.api.system.getUsers(requestObj,
@@ -143,7 +152,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         return defer.promise;
                     };
 
-                    $scope._getApps = function (requestObj) {
+                    $scope._getAppsData = function (requestObj) {
 
                         var defer = $q.defer();
 
@@ -162,13 +171,44 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     };
 
 
+                    // COMPLEX IMPLEMENTATION
+                    $scope._getRoles = function () {
+
+                        $scope._getRolesData().then(
+                            function (result) {
+                                $scope.roles = $scope._addUIProperties(result.record);
+                            },
+                            function (reject) {
+                                throw 'AccessManagement Module Error: ' + reject.error[0].message
+                            });
+                    };
+
+                    $scope._getUsers = function () {
+
+                        $scope._getUsersData().then(
+                            function (result) {
+                                $scope.users = $scope._addUIProperties(result.record);
+                            },
+                            function (reject) {
+                                throw 'AccessManagement Module Error: ' + reject.error[0].message
+                            });
+                    };
+
+                    $scope._getApps = function () {
+
+                        $scope._getAppsData().then(
+                            function(result) {
+                                $scope.apps = $scope._addUIProperties(result.record);
+                            },
+                            function(reject) {
+
+                                // TODO: AppService doesn't return an error
+                                throw 'AccessManagement Module Error: ' + reject.error[0].message
+                            });
+                    };
+
+
                     // HANDLE MESSAGES
-                    $scope.$on($scope.es.emit.openModuleNavigation, function (e) {
-
-                        console.log($scope.toggleModuleNavigationBool);
-                        $scope._toggleModuleNavigation();
-                    });
-
                     $scope.$on('api:ready', function (e) {
                         $scope.init();
                     });
@@ -176,59 +216,22 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     $scope.$on('view:changed', function (e, viewIdStr) {
 
                         $scope.activeView = viewIdStr;
+                        $scope.toggleModuleNavigationBool = true;
+                    });
+
+                    $scope.$on($scope.es.emit.openModuleNavigation, function (e) {
+
                         $scope._toggleModuleNavigation();
-                    });
-
-                    $scope.$on($scope.es.broadcast.getRoles, function (e) {
-
-                        $scope._getRoles().then(
-                            function (result) {
-                                $scope.roles = $scope._addUIProperties(result.record);
-                            },
-                            function (reject) {
-                                console.log(reject);
-                            }
-                        )
-                    });
-
-                    $scope.$on($scope.es.broadcast.getUsers, function (e) {
-
-                        $scope._getUsers().then(
-                            function (result) {
-                                $scope.users = $scope._addUIProperties(result.record);
-                            },
-                            function (reject) {
-                                console.log(reject);
-                            }
-                        )
-                    });
-
-                    $scope.$on($scope.es.broadcast.getApps, function(e) {
-
-                        $scope._getApps().then(
-                            function(result) {
-                                $scope.apps = $scope._addUIProperties(result.record);
-                            },
-                            function(reject) {
-
-                                console.log(reject);
-                            }
-                        )
-                    });
-
-                    $scope.$on(accessManagementEventsService.recordEvents.emit.saveRecordSuccess, function (e, userDataObj) {
-
-
                     });
 
                     $scope.$on(accessManagementEventsService.assignMassUsersEvents.emit.assignUsersRole, function(e, usersDataArr) {
 
-                        $scope.$broadcast(accessManagementEventsService.usersEvents.broadcast.saveAllUsers,usersDataArr);
+                        $scope.$broadcast(accessManagementEventsService.usersEvents.broadcast.saveUsers, usersDataArr);
                     });
 
                     $scope.$on(accessManagementEventsService.assignMassUsersEvents.emit.unassignUsersRole, function(e, usersDataArr) {
 
-                        $scope.$broadcast(accessManagementEventsService.usersEvents.broadcast.saveAllUsers,usersDataArr);
+                        $scope.$broadcast(accessManagementEventsService.usersEvents.broadcast.saveUsers,usersDataArr);
                     });
 
 
@@ -262,56 +265,52 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     // PUBLIC API
-                    scope.removeUsers = function () {
-
-                        scope.$broadcast(scope.es.broadcast.removeUsers);
-                    };
-
-                    scope.toggleAllUsers = function () {
-
-                        scope.$broadcast(scope.es.broadcast.toggleAllUsers);
-                    };
-
-                    scope.saveAllUsers = function () {
-
-                        scope.$broadcast(scope.es.broadcast.saveAllUsers);
-                    };
-
-                    scope.revertAllUsers = function () {
-
-                        scope.$broadcast(scope.es.broadcast.revertAllUsers);
-                    };
-
-                    scope.createUser = function () {
-
-                        scope.$broadcast(scope.es.broadcast.createUser);
-                    };
-
-                    scope.exportUsers = function () {
-
-                        scope.$broadcast(scope.es.broadcast.exportUsers);
-                    };
-
-                    scope.importUsers = function () {
-
-                        scope.$broadcast(scope.es.broadcast.importUsers);
-                    };
-
                     scope.openModuleNavigation = function () {
 
                         scope.$emit(accessManagementEventsService.module.emit.openModuleNavigation);
                     };
 
+                    scope.removeUsers = function () {
 
-                    //PRIVATE API
-                    scope._toggleAllUsers = function (dataObj, bool) {
-
-                        angular.forEach(dataObj, function (value, index) {
-                            value['dfUISelected'] = bool;
-                        });
+                        // @TODO Add Confirm Delete Code
+                        scope._removeUsers();
                     };
 
-                    scope._removeSelectedUsersFromSystem = function (dataObj) {
+                    scope.toggleAllUsers = function () {
+
+                        scope._toggleAllUsers();
+                    };
+
+                    scope.saveAllUsers = function () {
+
+                        scope._saveUsers();
+                    };
+
+                    scope.revertAllUsers = function () {
+
+                        scope._revertAllUsers();
+                    };
+
+                    scope.createUser = function () {
+
+                        scope._createUser();
+                    };
+
+                    scope.exportUsers = function () {
+
+                        scope._exportUsers();
+                    };
+
+                    scope.importUsers = function () {
+
+                        scope._importUsers();
+                    };
+
+
+
+
+                    //PRIVATE API
+                    scope._removeUsersFromSystem = function (dataObj) {
 
                         var idsForRemoval = [],
                             objsForRemoval = [];
@@ -336,7 +335,9 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                         // Short Circuit: Nothing to delete.
-                        if (idsForRemoval.length === 0) return false;
+                        if (idsForRemoval.length === 0) {
+                            throw 'removeUsersFromSystem Error: No users selected for removal.'
+                        }
 
 
                         var defer = $q.defer();
@@ -360,7 +361,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         return defer.promise;
                     };
 
-                    scope.__removeUsersData = function (userDataObj) {
+                    scope._removeUsersData = function (userDataObj) {
 
                         angular.forEach(scope.users, function (obj, index) {
 
@@ -371,11 +372,11 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         });
                     };
 
-                    scope._saveAllUsersToSystem = function (usersDataObj) {
+                    scope._saveUsersToSystem = function (usersDataArr) {
 
                         var objsToSave = [];
 
-                        angular.forEach(usersDataObj, function (obj) {
+                        angular.forEach(usersDataArr, function (obj) {
 
                             if (obj.dfUIUnsaved) {
 
@@ -383,8 +384,9 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                             }
                         });
 
-                        console.log(objsToSave);
-
+                        if (objsToSave.length == 0) {
+                            throw 'saveUsersToSystem Error: No users selected for save.'
+                        }
 
                         var defer = $q.defer();
 
@@ -436,7 +438,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         scope.users.unshift(userDataObj);
                     };
 
-                    scope.__resetUserInArray = function (userDataObj) {
+                    scope._resetUserInArray = function (userDataObj) {
 
                         angular.forEach(scope.users, function (obj, index) {
                             if (obj.id === userDataObj.id) {
@@ -447,9 +449,8 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         scope.users.unshift(userDataObj);
                     };
 
-
-                    // todo Fix Export downloading of zip file
-                    scope._exportUsers = function () {
+                    // TODO: Fix Export downloading of zip file
+                    scope._exportUsersData = function () {
 
                         $http.get(DSP_URL + '/rest/system/user?app_name=admin&file=jimmy.csv&format=csv&download=true',
                             function (data) {
@@ -463,13 +464,84 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                     };
 
-                    // todo Add User Import
-                    scope._importUsers = function () {
+                    // TODO: Add User Import
+                    scope._importUsersData = function () {
                     };
 
 
-                    // HANDLE MESSAGES
 
+
+                    // COMPLEX IMPLEMENTATION
+                    scope._removeUsers = function () {
+
+                        scope._removeUsersFromSystem(scope.users).then(
+                            function (result) {
+                                angular.forEach(result.record, function (userDataObj) {
+                                    scope._removeUsersData(userDataObj)
+                                });
+                                scope.$emit(scope.es.emit.removeUsersSuccess);
+                            },
+                            function (reject) {
+                                console.log(reject);
+                                throw 'AccessManagement Users Request Error: ' + reject.error[0].message;
+                            }
+                        )
+                    };
+
+                    scope._toggleAllUsers = function() {
+
+                        scope.toggleAllUsersBool = !scope.toggleAllUsersBool;
+                        scope._toggleEachRecord(scope.users, scope.toggleAllUsersBool);
+                    };
+
+                    scope._saveUsers = function (usersDataArr) {
+
+                        usersDataArr = usersDataArr || scope.users;
+
+                        // Save all users to the remote system
+                        scope._saveUsersToSystem(usersDataArr).then(
+                            function (result) {
+
+                                angular.forEach(result.record, function (userDataObj) {
+                                    scope._resetUserInArray(userDataObj);
+                                })
+                            },
+                            function (reject) {
+
+                                console.log(reject);
+                                throw 'AccessManagement Users Request Error: ' + reject.error[0].message
+                            }
+                        );
+                    };
+
+                    scope._revertAllUsers = function() {
+
+                        scope.$broadcast(accessManagementEventsService.userEvents.broadcast.revertRecord)
+                    };
+
+                    scope._createUser = function() {
+
+                        scope.newUser = scope._createUserModel();
+                        scope.topLevelNavigation = false;
+                        scope.$broadcast(accessManagementEventsService.recordEvents.broadcast.openRecordSingle, scope.newUser);
+                    };
+
+                    // Part of fix export
+                    scope._exportUsers = function() {
+                        console.log('Export Users');
+                        // scope._exportUsersData()
+                    };
+
+                    // Part of user import
+                    scope._importUsers = function() {
+                        console.log('Import Users');
+                        // scope._importUsersData()
+                    };
+
+
+
+
+                    // HANDLE EVENTS
                     scope.$on('view:change:view', function (e, viewIdStr) {
 
                         if (viewIdStr === scope.id) {
@@ -480,129 +552,39 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         }
                     });
 
-                    scope.$on(scope.es.broadcast.removeUsers, function (e) {
+                    scope.$on(scope.es.broadcast.saveUsers, function(e, usersDataObj) {
 
-                        try {
-                            scope._removeSelectedUsersFromSystem(scope.users).then(
-                                function (result) {
-                                    angular.forEach(result.record, function (userDataObj) {
-                                        scope.__removeUsersData(userDataObj)
-                                    });
-
-                                    scope.$emit(scope.es.emit.removeUsersSuccess);
-                                },
-                                function (reject) {
-                                    console.log('rejected');
-                                    console.log(reject);
-                                    scope.$emit(scope.es.emit.removeUsersError);
-                                    throw 'Remove Users Error: ';
-                                }
-                            )
-                        } catch (e) {
-                            throw 'Remove Users Error: Failed';
-                        }
-
+                        scope._saveUsers(usersDataObj);
                     });
 
-                    scope.$on(scope.es.broadcast.toggleAllUsers, function (e) {
-
-                        scope.toggleAllUsersBool = !scope.toggleAllUsersBool;
-                        scope._toggleAllUsers(scope.users, scope.toggleAllUsersBool);
-                    });
-
-                    scope.$on(scope.es.broadcast.saveAllUsers, function (e, usersDataObj) {
-
-
-                        usersDataObj = usersDataObj || scope.users;
-
-
-                        console.log('save all users');
-                        try {
-
-                            // Save all users to the remote system
-                            scope._saveAllUsersToSystem(usersDataObj).then(
-                                function (result) {
-
-                                    // Let all the user objects know they should save themselves.
-                                    // This will update our main scope b/c everyone is bound to it.
-                                    scope.$broadcast(scope.es.broadcast.saveAllUsersSuccess);
-
-                                    // Alert the Application that all users have been saved.
-                                    scope.$emit(scope.es.emit.saveAllUsersSuccess);
-
-                                    angular.forEach(result.record, function(userDataObj) {
-                                        scope.__resetUserInArray(userDataObj);
-                                    })
-                                },
-                                function (reject) {
-
-                                    console.log(reject);
-                                    scope.$emit(scope.es.emit.saveAllUsersError);
-                                }
-                            );
-                        } catch (e) {
-                            throw 'Save All Users: Failed';
-                        }
-                    });
-
-                    scope.$on(scope.es.broadcast.revertAllUsers, function (e) {
-
-                        scope.$broadcast(accessManagementEventsService.userEvents.broadcast.revertRecord)
-                    });
-
-                    scope.$on(scope.es.broadcast.createUser, function (e) {
-
-                        scope.newUser = scope._createUserModel();
-                        scope.topLevelNavigation = false;
-                        scope.$broadcast(accessManagementEventsService.recordEvents.broadcast.openRecordSingle, scope.newUser);
-                    });
-
-                    // Part of fix export
-                    scope.$on(scope.es.broadcast.exportUsers, function (e) {
-
-                        scope._exportUsers();
-                    });
-
-                    // Part of user import
-                    scope.$on(scope.es.broadcast.importUsers, function (e) {
-
-
-                    });
-
-
-                    // Handle Child Edit-User/Create-User Events
                     scope.$on(accessManagementEventsService.recordEvents.emit.openRecordSuccess, function (e, userDataObj) {
 
-                        e.stopPropagation();
                         scope.topLevelNavigation = false;
-                        scope.$broadcast(accessManagementEventsService.userEvents.broadcast.openRecordSingle, userDataObj);
+                        scope.$broadcast(accessManagementEventsService.recordEvents.broadcast.openRecordSingle, userDataObj);
                     });
 
                     scope.$on(accessManagementEventsService.recordEvents.emit.closeRecordSuccess, function (e) {
 
-                        e.stopPropagation();
                         scope.topLevelNavigation = true;
-                        scope.$broadcast(accessManagementEventsService.userEvents.broadcast.closeRecordSingle);
+                        scope.$broadcast(accessManagementEventsService.recordEvents.broadcast.closeRecordSingle);
                     });
 
                     scope.$on(accessManagementEventsService.recordEvents.emit.removeRecordSuccess, function (e, userDataObj) {
 
-                        e.stopPropagation();
-                        scope.__removeUsersData(userDataObj);
-                    });
-
-                    scope.$on(accessManagementEventsService.recordEvents.emit.createRecordSuccess, function (e, userDataObj) {
-
-                        e.stopPropagation();
-                        scope._addUIProperties(userDataObj);
-                        scope._addUser(userDataObj);
+                        scope._removeUsersData(userDataObj);
                     });
 
                     scope.$on(accessManagementEventsService.recordEvents.emit.saveRecordSuccess, function (e, userDataObj) {
 
-                        e.stopPropagation();
-                        scope.__resetUserInArray(userDataObj);
+                        scope._resetUserInArray(userDataObj);
                     });
+
+                    scope.$on(accessManagementEventsService.recordEvents.emit.createRecordSuccess, function (e, userDataObj) {
+
+                        scope._addUIProperties(userDataObj);
+                        scope._addUser(userDataObj);
+                    });
+
 
 
                     // WATCHERS AND INITIALIZATION
@@ -643,17 +625,44 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                     scope.createRole = function () {
 
-                        scope.$broadcast(scope.es.broadcast.createRole);
+                        scope._createRole();
                     };
 
-                    scope._addRole = function (roleDataObj) {
+                    scope.toggleAllRoles = function () {
 
-                        scope.roles.unshift(roleDataObj);
+                        scope._toggleAllRoles();
                     };
+
+                    scope.saveAllRoles = function () {
+
+                        scope._saveRoles();
+                    };
+
+                    scope.revertAllRoles = function () {
+
+                        scope._revertAllRoles();
+                    };
+
+                    scope.removeRoles = function () {
+
+                        // @TODO Add Confirm Delete Code
+                        scope._removeRoles();
+                    };
+
+                    scope.exportRoles = function () {
+
+                        scope._exportRoles();
+                    };
+
+                    scope.importRoles = function () {
+
+                        scope._importRoles();
+                    };
+
+
 
 
                     //PRIVATE API
-
                     scope._createRoleModel = function () {
 
                         return {
@@ -669,6 +678,194 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         }
                     };
 
+                    scope._addRole = function (roleDataObj) {
+
+                        scope.roles.unshift(roleDataObj);
+                    };
+
+                    scope._saveRolesToSystem = function (rolesDataArr) {
+
+                        var objsToSave = [];
+
+                        angular.forEach(rolesDataArr, function (obj) {
+
+                            if (obj.dfUIUnsaved) {
+
+                                objsToSave.push(obj);
+                            }
+                        });
+
+                        if (objsToSave.length == 0) {
+                            throw 'saveRolesToSystem Error: No roles selected for save.'
+                        }
+
+                        var defer = $q.defer();
+
+                        var requestObj = {
+                            body: {
+                                record: objsToSave
+                            }
+                        };
+
+                        DreamFactory.api.system.updateRoles(
+                            requestObj,
+                            function (data) {
+                                defer.resolve(data);
+                            },
+                            function (error) {
+                                defer.resolve(error)
+                            }
+                        );
+
+                        return defer.promise
+                    };
+
+                    scope._resetRoleInArray = function (roleDataObj) {
+
+                        angular.forEach(scope.roles, function (obj, index) {
+                            if (obj.id === roleDataObj.id) {
+                                scope.roles.splice(index, 1);
+                            }
+                        });
+
+                        scope.roles.unshift(roleDataObj);
+                    };
+
+                    scope._removeRolesFromSystem = function (rolesDataArr) {
+
+                        var idsForRemoval = [];
+
+
+                        angular.forEach(rolesDataArr, function (value, index) {
+
+                            if (value.dfUISelected) {
+
+                                if (value.is_sys_admin && accessManagementRulesService.allowMassAdminUserDeletion) {
+
+                                    idsForRemoval.push(value.id);
+
+                                } else if (!value.is_sys_admin) {
+
+                                    idsForRemoval.push(value.id);
+                                }
+                            }
+                        });
+
+
+                        // Short Circuit: Nothing to delete.
+                        if (idsForRemoval.length === 0) {
+                            throw 'AccessManagement Roles Error: No roles selected for removal.'
+                        }
+
+                        var defer = $q.defer();
+
+                        var requestObj = {
+                            ids: idsForRemoval.join(','),
+                            fields: '*',
+                            related: null
+                        };
+
+                        DreamFactory.api.system.deleteRoles(
+                            requestObj,
+                            function (data) {
+                                defer.resolve(data);
+                            },
+                            function (error) {
+                                defer.reject(error)
+                            });
+
+                        return defer.promise;
+                    };
+
+                    scope._removeRolesData = function (rolesDataObj) {
+
+                        angular.forEach(scope.roles, function (obj, index) {
+                            if (obj.id === rolesDataObj.id) {
+                                delete scope.roles[index];
+                                scope.roles.splice(index, 1)
+                            }
+                        });
+                    };
+
+                    // TODO: Fix Export downloading of zip file
+                    scope._exportRolesData = function () {};
+
+                    // TODO: Add User Import
+                    scope._importRolesData = function () {};
+
+
+
+                    // COMPLEX IMPLEMENTATION
+                    scope._createRole = function () {
+
+                        scope.newRole = scope._createRoleModel();
+                        scope.topLevelNavigation = false;
+                        scope.$broadcast(accessManagementEventsService.recordEvents.broadcast.openRecordSingle, scope.newRole);
+                    };
+
+                    scope._toggleAllRoles = function () {
+
+                        scope.toggleAllRolesBool = !scope.toggleAllRolesBool;
+                        scope._toggleEachRecord(scope.roles, scope.toggleAllRolesBool);
+                    };
+
+                    scope._saveRoles = function (rolesDataArr) {
+
+                        rolesDataArr = rolesDataArr || scope.roles;
+
+                        // Save all roles to the remote system
+                        scope._saveRolesToSystem(rolesDataArr).then(
+                            function (result) {
+
+                                angular.forEach(result.record, function (roleDataObj) {
+                                    scope._resetRoleInArray(roleDataObj);
+                                })
+                            },
+                            function (reject) {
+
+                                console.log(reject);
+                                throw 'saveRolesToSystem Request Failed: ' + reject.error[0].message
+                            }
+                        );
+                    };
+
+                    scope._revertAllRoles = function() {
+
+                        scope.$broadcast(accessManagementEventsService.recordEvents.broadcast.revertRecord)
+                    };
+
+                    scope._removeRoles = function (rolesDataArr) {
+
+                        rolesDataArr = rolesDataArr || scope.roles;
+
+                        scope._removeRolesFromSystem(rolesDataArr).then(
+                            function (result) {
+                                angular.forEach(result.record, function (roleDataObj) {
+                                    scope._removeRolesData(roleDataObj)
+                                });
+                                scope.$emit(scope.es.emit.removeUsersSuccess);
+                            },
+                            function (reject) {
+                                console.log(reject);
+                                throw 'AccessManagement Roles Request Error: ' + reject.error[0].message;
+                            }
+                        )
+                    };
+
+                    // Part of fix export
+                    scope._exportRoles = function() {
+                        console.log('Export Roles');
+                        // scope._exportUsersData()
+                    };
+
+                    // Part of user import
+                    scope._importRoles = function() {
+                        console.log('Import Roles');
+                        // scope._importUsersData()
+                    };
+
+
+
 
                     // HANDLE MESSAGES
                     scope.$on('view:change:view', function (e, viewIdStr) {
@@ -681,42 +878,33 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         }
                     });
 
-                    scope.$on(scope.es.broadcast.createRole, function (e) {
-
-                        scope.newRole = scope._createRoleModel();
-                        scope.topLevelNavigation = false;
-                        scope.$broadcast(accessManagementEventsService.recordEvents.broadcast.openRecordSingle, scope.newRole);
-                    });
-
-
-                    // Handle Child Edit-Role Events
                     scope.$on(accessManagementEventsService.recordEvents.emit.openRecordSuccess, function (e, roleDataObj) {
 
-                        e.stopPropagation();
                         scope.topLevelNavigation = false;
                         scope.$broadcast(accessManagementEventsService.recordEvents.broadcast.openRecordSingle, roleDataObj);
                     });
 
                     scope.$on(accessManagementEventsService.recordEvents.emit.closeRecordSuccess, function (e) {
 
-                        e.stopPropagation();
                         scope.topLevelNavigation = true;
                         scope.$broadcast(accessManagementEventsService.recordEvents.broadcast.closeRecordSingle);
                     });
 
                     scope.$on(accessManagementEventsService.recordEvents.emit.removeRecordSuccess, function (e, roleDataObj) {
 
-                        e.stopPropagation();
-                        scope.__removeRolesData(roleDataObj);
+                        scope._removeRolesData(roleDataObj);
                     });
 
                     scope.$on(accessManagementEventsService.recordEvents.emit.createRecordSuccess, function (e, roleDataObj) {
 
-                        e.stopPropagation();
                         scope._addUIProperties(roleDataObj);
                         scope._addRole(roleDataObj);
                     });
 
+                    scope.$on(accessManagementEventsService.recordEvents.emit.saveRecordSuccess, function (e, roleDataObj) {
+
+
+                    })
 
                     // WATCHERS AND INITIALIZATION
 
@@ -740,6 +928,8 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     scope.userCopy = {};
                     scope.formName = 'user-edit-' + scope.user.id;
 
+
+                    // INIT DEF
                     scope.init = function () {
 
                         scope.userCopy = scope._copyRecord(scope.user);
@@ -749,32 +939,32 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     // PUBLIC API
                     scope.openRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.openRecord);
+                        scope._openRecord();
                     };
 
                     scope.closeRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.closeRecord);
+                        scope._closeRecord();
                     };
 
                     scope.saveRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.saveRecord)
+                        scope._saveRecord();
                     };
 
                     scope.removeRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.removeRecord);
+                        scope._removeRecord();
                     };
 
                     scope.revertRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.revertRecord)
+                        scope._revertRecord();
                     };
 
                     scope.selectRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.selectRecord);
+                        scope._selectRecord();
                     };
 
 
@@ -793,7 +983,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         }
                     };
 
-                    scope._saveRecord = function (userDataObj) {
+                    scope._saveRecordToSystem = function (userDataObj) {
 
                         var defer = $q.defer();
 
@@ -812,7 +1002,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         return defer.promise;
                     };
 
-                    scope._removeRecord = function (userDataObj) {
+                    scope._removeRecordFromSystem = function (userDataObj) {
 
                         var defer = $q.defer();
 
@@ -852,7 +1042,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         return angular.copy(userDataObj);
                     };
 
-                    scope._revertRecord = function () {
+                    scope._revertRecordData = function () {
 
                         scope.user = scope._copyRecord(scope.userCopy);
                     };
@@ -863,18 +1053,71 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     };
 
 
-                    // HANDLE MESSAGES
-                    scope.$on(scope.es.broadcast.openRecord, function (e) {
+                    // COMPLEX IMPLEMENTATION
+                    scope._openRecord = function() {
 
                         scope.active = true;
                         scope.$emit(scope.es.emit.openRecordSuccess, scope.user);
-                    });
+                    };
 
-                    scope.$on(scope.es.broadcast.closeRecord, function (e) {
+                    scope._closeRecord = function () {
 
                         scope.$emit(scope.es.emit.closeRecordSuccess);
-                    });
+                    };
 
+                    scope._saveRecord = function() {
+
+                        scope._saveRecordToSystem(scope.user).then(
+                            function (result) {
+
+                                scope['user-edit-' + scope.user.id].$setPristine();
+                                scope._checkUnsavedChanges();
+                                scope.user = result;
+                                scope.userCopy = result;
+
+                                if (scope._checkAutoClose()) {
+                                    scope.closeRecord();
+                                }
+
+                                scope.$emit(scope.es.emit.saveRecordSuccess, result);
+                            },
+                            function (reject) {
+                                console.log(reject);
+                                throw 'Save Record Failed'
+                            }
+                        );
+                    };
+
+                    scope._removeRecord = function () {
+
+                        scope._removeRecordFromSystem(scope.user).then(
+                            function (result) {
+                                scope.$emit(scope.es.emit.removeRecordSuccess, result);
+                                scope.closeRecord();
+                            },
+                            function (reject) {
+                                console.log(reject);
+                            }
+                        );
+
+                    }
+
+                    scope._revertRecord = function () {
+
+                        scope._revertRecordData();
+                        scope['user-edit-' + scope.user.id].$setPristine();
+                        scope._checkUnsavedChanges();
+                        scope.$emit(scope.es.emit.revertRecordSuccess);
+                    };
+
+                    scope._selectRecord = function() {
+
+                        scope._setRecordSelected();
+                        scope.$emit(scope.es.emit.selectRecordSuccess)
+                    };
+
+
+                    // HANDLE MESSAGES
                     scope.$on(scope.es.broadcast.openRecordSingle, function (e, userDataObj) {
 
                         if (userDataObj.id !== scope.user.id) {
@@ -890,58 +1133,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     });
 
                     scope.$on(scope.es.broadcast.saveRecord, function (e) {
-
-                        scope._saveRecord(scope.user).then(
-                            function (result) {
-
-                                scope['user-edit-' + scope.user.id].$setPristine();
-                                scope._checkUnsavedChanges();
-                                scope.user = result;
-                                scope.userCopy = result;
-
-
-                                if (scope._checkAutoClose()) {
-                                    scope.closeRecord();
-                                }
-
-                                scope.$emit(scope.es.emit.saveRecordSuccess, result);
-                            },
-                            function (reject) {
-                                console.log(reject);
-                            }
-                        );
-                    });
-
-                    scope.$on(scope.es.broadcast.removeRecord, function (e) {
-
-                        scope._removeRecord(scope.user).then(
-                            function (result) {
-                                scope.$emit(scope.es.emit.removeRecordSuccess, result);
-                                scope.closeRecord();
-                            },
-                            function (reject) {
-                                console.log(reject);
-                            }
-                        );
-                    });
-
-                    scope.$on(scope.es.broadcast.revertRecord, function (e) {
-
-                        scope._revertRecord();
-                        scope['user-edit-' + scope.user.id].$setPristine();
-                        scope._checkUnsavedChanges();
-                        scope.$emit(scope.es.emit.revertRecordSuccess);
-                    });
-
-                    scope.$on(scope.es.broadcast.selectRecord, function (e) {
-
-                        scope._setRecordSelected();
-                        scope.$emit(scope.es.emit.selectRecordSuccess)
-                    });
-
-                    scope.$on(accessManagementEventsService.usersEvents.broadcast.saveAllUsersSuccess, function (e) {
-
-                        console.log('received reset user')
 
                         scope['user-edit-' + scope.user.id].$setPristine();
                         scope._checkUnsavedChanges();
@@ -976,8 +1167,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     scope.roleCopy = {};
                     scope.formName = 'role-edit-' + scope.role.id;
 
-                    console.log(scope.roles);
-
                     scope.init = function () {
 
                         scope.roleCopy = scope._copyRecord(scope.role);
@@ -987,33 +1176,34 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     // PUBLIC API
                     scope.openRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.openRecord);
+                        scope._openRecord();
                     };
 
                     scope.closeRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.closeRecord);
+                        scope._closeRecord();
                     };
 
                     scope.saveRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.saveRecord)
+                        scope._saveRecord();
                     };
 
                     scope.removeRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.removeRecord);
+                        scope._removeRecord();
                     };
 
                     scope.revertRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.revertRecord)
+                        scope._revertRecord();
                     };
 
                     scope.selectRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.selectRecord);
+                        scope._selectRecord();
                     };
+
 
 
                     // PRIVATE API
@@ -1031,7 +1221,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         }
                     };
 
-                    scope._saveRecord = function (roleDataObj) {
+                    scope._saveRecordToSystem = function (roleDataObj) {
 
                         var defer = $q.defer();
 
@@ -1050,7 +1240,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         return defer.promise;
                     };
 
-                    scope._removeRecord = function (roleDataObj) {
+                    scope._removeRecordFromSystem = function (roleDataObj) {
 
                         var defer = $q.defer();
 
@@ -1088,7 +1278,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         return angular.copy(roleDataObj);
                     };
 
-                    scope._revertRecord = function () {
+                    scope._revertRecordData = function () {
 
                         scope.role = scope._copyRecord(scope.roleCopy);
                     };
@@ -1099,35 +1289,22 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     };
 
 
-                    // HANDLE MESSAGES
-                    scope.$on(scope.es.broadcast.openRecord, function (e) {
+
+                    // COMPLEX IMPLEMENTATION
+                    scope._openRecord = function () {
 
                         scope.active = true;
                         scope.$emit(scope.es.emit.openRecordSuccess, scope.role);
-                    });
+                    };
 
-                    scope.$on(scope.es.broadcast.closeRecord, function (e) {
+                    scope._closeRecord = function () {
 
                         scope.$emit(scope.es.emit.closeRecordSuccess);
-                    });
+                    };
 
-                    scope.$on(scope.es.broadcast.openRecordSingle, function (e, roleDataObj) {
+                    scope._saveRecord = function () {
 
-                        if (roleDataObj.id !== scope.role.id) {
-                            scope.singleRoleActive = true;
-                        }
-                    });
-
-                    scope.$on(scope.es.broadcast.closeRecordSingle, function (e) {
-
-                        scope._checkUnsavedChanges();
-                        scope.singleRoleActive = false;
-                        scope.active = false;
-                    });
-
-                    scope.$on(scope.es.broadcast.saveRecord, function (e) {
-
-                        scope._saveRecord(scope.role).then(
+                        scope._saveRecordToSystem(scope.role).then(
                             function (result) {
 
                                 scope['role-edit-' + scope.role.id].$setPristine();
@@ -1142,39 +1319,57 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                                 scope.$emit(scope.es.emit.saveRecordSuccess, result);
                             },
                             function (reject) {
-                                console.log(reject);
+                                throw 'AccessManagement Roles Error: ' + reject.error[0].message
                             }
                         );
-                    });
+                    };
 
-                    scope.$on(scope.es.broadcast.removeRecord, function (e) {
+                    scope._removeRecord = function () {
 
-                        scope._removeRecord(scope.role).then(
+                        scope._removeRecordFromSystem(scope.role).then(
                             function (result) {
                                 scope.$emit(scope.es.emit.removeRecordSuccess, result);
                                 scope.closeRecord();
                             },
                             function (reject) {
-                                console.log(reject);
+
+                                throw 'AccessManagement Roles Error: ' + reject.error[0].message
                             }
                         );
-                    });
+                    }
 
-                    scope.$on(scope.es.broadcast.revertRecord, function (e) {
+                    scope._revertRecord = function () {
 
-                        scope._revertRecord();
+                        scope._revertRecordData();
                         scope['role-edit-' + scope.role.id].$setPristine();
                         scope._checkUnsavedChanges();
                         scope.$emit(scope.es.emit.revertRecordSuccess);
-                    });
+                    };
 
-                    scope.$on(scope.es.broadcast.selectRecord, function (e) {
+                    scope._selectRecord = function () {
 
                         scope._setRecordSelected();
                         scope.$emit(scope.es.emit.selectRecordSuccess)
+                    };
+
+
+
+                    // HANDLE MESSAGES
+                    scope.$on(scope.es.broadcast.openRecordSingle, function (e, roleDataObj) {
+
+                        if (roleDataObj.id !== scope.role.id) {
+                            scope.singleRoleActive = true;
+                        }
                     });
 
-                    scope.$on(accessManagementEventsService.usersEvents.broadcast.saveAllUsersSuccess, function (e) {
+                    scope.$on(scope.es.broadcast.closeRecordSingle, function (e) {
+
+                        scope._checkUnsavedChanges();
+                        scope.singleRoleActive = false;
+                        scope.active = false;
+                    });
+
+                    scope.$on(accessManagementEventsService.rolesEvents.broadcast.saveAllRolesSuccess, function (e) {
 
                         scope['role-edit-' + scope.role.id].$setPristine();
                         scope._checkUnsavedChanges();
@@ -1220,7 +1415,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     // PUBLIC VARS
-
                     // Stores sorted users that don't have the current role
                     scope.usersWithOutRole = [];
 
@@ -1229,11 +1423,10 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     // PUBLIC API
-
                     // UI Interface
                     scope.toggleUserSelected = function (userDataObj) {
 
-                        scope.$broadcast(scope.es.broadcast.toggleUserSelected, userDataObj);
+                        scope._toggleUserSelected(userDataObj);
                     };
 
                     scope.assignRole = function () {
@@ -1243,7 +1436,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                     scope.unassignRole = function () {
 
-                        scope.$broadcast(scope.es.broadcast.unassignRole);
+                        scope._unassignRole();
                     };
 
 
@@ -1322,39 +1515,39 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         }
                     };
 
-                    // Toggle users to be modified
-                    scope.__toggleUserSelected = function(userDataObj) {
-                        angular.forEach(scope.users, function (obj, index) {
-
-                            if (obj.id === userDataObj.id) {
-                                obj.dfUISelected = !obj.dfUISelected;
-                            }
-                        })
+                    // Toggle user to be modified
+                    scope._toggleUserSelectedData = function(userDataObj) {
+                        userDataObj.dfUISelected = !userDataObj.dfUISelected
                     };
 
 
 
-                    // HANDLE MESSAGES
 
-                    // Listen for UI function to toggle user selected
-                    scope.$on(scope.es.broadcast.toggleUserSelected, function(e, userDataObj) {
+                    // COMPLEX IMPLEMENTATION
+                    // Function to toggle user selected
+                    scope._toggleUserSelected = function (userDataObj) {
 
-                        scope.__toggleUserSelected(userDataObj);
-                    });
+                        scope._toggleUserSelectedData(userDataObj);
+                    };
 
-                    // Listen for the UI function to assign the role
-                    scope.$on(scope.es.broadcast.assignRole, function(e) {
+                    // Function to assign the role
+                    scope._assignRole = function () {
 
                         // Tell the main parent Directive Controller to save the selected users with the current role.
                         scope.$emit(scope.es.emit.assignUsersRole, scope._getSelectedUsersWithOutRole());
-                    });
+                    };
 
-                    // Listen for the UI function to unassign the role
-                    scope.$on(scope.es.broadcast.unassignRole, function(e) {
+                    // Function to unassign the role
+                    scope._unassignRole = function () {
 
                         // Tell the main parent Directive Controller to save the selected users with the current role removed
                         scope.$emit(scope.es.emit.unassignUsersRole, scope._getSelectedUsersWithRole())
-                    });
+                    };
+
+
+
+
+                    // HANDLE MESSAGES
 
 
                     // @todo Prompt or unselect selected users on record close.
@@ -1363,11 +1556,10 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
 
-
-
                     // WATCHERS AND INIT
                     var watchUsers = scope.$watchCollection('users', function (newValue, oldValue) {
-                        scope.__sortUsers(newValue);
+                        scope.massAssignUsers = angular.copy(scope.users);
+                        scope.__sortUsers(scope.massAssignUsers);
                     });
                 }
             }
@@ -1401,12 +1593,14 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     // PUBLIC API
                     scope.closeRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.closeRecord);
+                        if (scope._confirmUnsavedClose()) {
+                            scope._closeRecord();
+                        }
                     };
 
                     scope.createRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.createRecord)
+                        scope._createRecord();
                     };
 
 
@@ -1448,29 +1642,14 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     };
 
 
-                    // HANDLE MESSAGES
-                    scope.$on(scope.es.broadcast.closeRecord, function (e) {
+                    // COMPLEX IMPLEMETATION
+                    scope._closeRecord = function () {
 
-                        if (scope._confirmUnsavedClose()) {
-                            scope['create-user'].$setPristine();
-                            scope.$emit(scope.es.emit.closeRecordSuccess);
-                        }
-                    });
+                        scope['create-user'].$setPristine();
+                        scope.$emit(scope.es.emit.closeRecordSuccess);
+                    };
 
-                    scope.$on(scope.es.broadcast.closeRecordSingle, function (e) {
-
-                        scope.active = false;
-                    });
-
-                    scope.$on(scope.es.broadcast.openRecordSingle, function (e, userDataObj) {
-
-                        if (userDataObj.id === null) {
-                            scope.active = true;
-                            scope.user = angular.copy(scope.newUser);
-                        }
-                    });
-
-                    scope.$on(scope.es.broadcast.createRecord, function (e) {
+                    scope._createRecord = function () {
 
                         scope._createUserRecord().then(
                             function (result) {
@@ -1483,11 +1662,23 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                                 console.log(reject);
                                 scope.$emit(scope.es.emit.createRecordError, error);
-                            }
-                        )
+                            });
+                    };
 
+
+                    // HANDLE MESSAGES
+                    scope.$on(scope.es.broadcast.closeRecordSingle, function (e) {
+
+                        scope.active = false;
                     });
 
+                    scope.$on(scope.es.broadcast.openRecordSingle, function (e, userDataObj) {
+
+                        if (userDataObj.id === null) {
+                            scope.active = true;
+                            scope.user = angular.copy(scope.newUser);
+                        }
+                    });
                 }
             }
         }])
@@ -1506,16 +1697,15 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     scope.singleRoleActive = false;
 
 
-
                     // PUBLIC API
                     scope.closeRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.closeRecord);
+                        scope._closeRecord();
                     };
 
                     scope.createRecord = function () {
 
-                        scope.$broadcast(scope.es.broadcast.createRecord)
+                        scope._createRecord();
                     };
 
 
@@ -1558,28 +1748,15 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     // HANDLE MESSAGES
-                    scope.$on(scope.es.broadcast.closeRecord, function (e) {
+                    scope._closeRecord = function () {
 
                         if (scope._confirmUnsavedClose()) {
                             scope['create-role'].$setPristine();
                             scope.$emit(scope.es.emit.closeRecordSuccess);
                         }
-                    });
+                    };
 
-                    scope.$on(scope.es.broadcast.closeRecordSingle, function (e) {
-
-                        scope.active = false;
-                    });
-
-                    scope.$on(scope.es.broadcast.openRecordSingle, function (e, roleDataObj) {
-
-                        if (roleDataObj.id === null) {
-                            scope.active = true;
-                            scope.role = angular.copy(scope.newRole);
-                        }
-                    });
-
-                    scope.$on(scope.es.broadcast.createRecord, function (e) {
+                    scope._createRecord = function () {
 
                         scope._createRoleRecord().then(
                             function (result) {
@@ -1592,9 +1769,20 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                                 console.log(reject);
                                 scope.$emit(scope.es.emit.createRecordError, error);
-                            }
-                        )
+                            });
+                    };
 
+                    scope.$on(scope.es.broadcast.closeRecordSingle, function (e) {
+
+                        scope.active = false;
+                    });
+
+                    scope.$on(scope.es.broadcast.openRecordSingle, function (e, roleDataObj) {
+
+                        if (roleDataObj.id === null) {
+                            scope.active = true;
+                            scope.role = angular.copy(scope.newRole);
+                        }
                     });
 
                 }
@@ -1619,7 +1807,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 broadcast: {
                     removeUsers: 'remove:users',
                     toggleAllUsers: 'select:all',
-                    saveAllUsers: 'save:users:all',
+                    saveUsers: 'save:users',
                     createUser: 'create:user',
                     exportUsers: 'export:users',
                     importUsers: 'import:users',
@@ -1636,19 +1824,38 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     createUserError: 'create:user:error'
                 }
             },
+            rolesEvents: {
+                broadcast: {
+                    removeRoles: 'remove:roles',
+                    toggleAllRoles: 'select:all',
+                    saveRoles: 'save:Roles',
+                    createRole: 'create:role',
+                    exportRoles: 'export:roles',
+                    importRoles: 'import:roles',
+                    saveAllRolesSuccess: 'save:roles:success'
+                },
+                emit: {
+                    getRolesSuccess: 'get:roles:success',
+                    getRolesError: 'get:roles:error',
+                    removeRolesSuccess: 'remove:roles:success',
+                    removeRolesError: 'remove:roles:error',
+                    saveAllRolesSuccess: 'save:roles:success',
+                    saveAllRolesError: 'save:roles:error',
+                    createRoleSuccess: 'create:role:success',
+                    createRoleError: 'create:role:error'
+                }
+            },
             recordEvents: {
                 broadcast: {
+                    openRecordSingle: 'open:record:single',
+                    closeRecordSingle: 'close:record:single',
                     openRecord: 'open:record',
-                    closeRecord: 'close:record',
-                    saveRecord: 'save:record',
                     removeRecord: 'remove:record',
                     revertRecord: 'revert:record',
-                    createRecord: 'create:record',
                     selectRecord: 'select:record',
-                    openRecordSingle: 'open:record:single',
-                    closeRecordSingle: 'close:record:single'
-
-
+                    saveRecord: 'save:record',
+                    closeRecord: 'close:record',
+                    createRecord: 'create:record'
                 },
                 emit: {
                     openRecordSuccess: 'open:record:success',
@@ -1659,7 +1866,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     createRecordSuccess: 'create:record:success',
                     createRecordError: 'create:record:error',
                     selectRecordSuccess: 'select:record:success'
-
                 }
             },
             userEvents: {
@@ -1686,17 +1892,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     createUserError: 'create:user:error',
                     selectRecordSuccess: 'select:record:success'
 
-                }
-            },
-            rolesEvents: {
-
-                broadcast: {
-
-                },
-
-                emit: {
-                    getRolesSuccess: 'get:roles:success',
-                    getRolesError: 'get:roles:error'
                 }
             },
             selectRolesEvents: {
@@ -1814,9 +2009,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                 return _setDataObj(nameStr, dataObj);
             }
-
-
-
 
         };
     }])
