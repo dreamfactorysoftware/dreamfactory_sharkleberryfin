@@ -234,6 +234,11 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         $scope.$broadcast(accessManagementEventsService.usersEvents.saveUsers, usersDataArr);
                     });
 
+                    $scope.$on(accessManagementEventsService.assignMassUsersEvents.removeRoleUsers, function (e, usersDataArr) {
+
+                        $scope.$broadcast(accessManagementEventsService.usersEvents.removeUsers, usersDataArr);
+                    });
+
 
                     // WATCHERS AND INIT
                     $scope.init();
@@ -326,10 +331,13 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                                     objsForRemoval.push(value);
                                     idsForRemoval.push(value.id);
+
                                 }
                             }
                         });
 
+
+                        console.log(idsForRemoval);
 
                         // Short Circuit: Nothing to delete.
                         if (idsForRemoval.length === 0) {
@@ -467,9 +475,11 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     // COMPLEX IMPLEMENTATION
-                    scope._removeUsers = function () {
+                    scope._removeUsers = function (usersDataArr) {
 
-                        scope._removeUsersFromSystem(scope.users).then(
+                        usersDataArr = usersDataArr || scope.users;
+
+                        scope._removeUsersFromSystem(usersDataArr).then(
                             function (result) {
                                 angular.forEach(result.record, function (userDataObj) {
                                     scope._removeUsersData(userDataObj)
@@ -548,6 +558,11 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     scope.$on(scope.es.saveUsers, function (e, usersDataObj) {
 
                         scope._saveUsers(usersDataObj);
+                    });
+
+                    scope.$on(scope.es.removeUsers, function(e, usersDataArr) {
+
+                        scope._removeUsers(usersDataArr);
                     });
 
                     scope.$on(accessManagementEventsService.userEvents.openUserSuccess, function (e, userDataObj) {
@@ -636,8 +651,10 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                     scope.removeRoles = function () {
 
-                        // @TODO Add Confirm Delete Code
-                        scope._removeRoles();
+                        if (scope._confirmRemoveRoles()) {
+                            scope._removeRoles();
+                        }
+
                     };
 
                     scope.exportRoles = function () {
@@ -652,6 +669,11 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     //PRIVATE API
+                    scope._confirmRemoveRoles = function () {
+
+                        return confirm('Are you sure you want to delete these roles?');
+                    }
+
                     scope._createRoleModel = function () {
 
                         return {
@@ -1346,7 +1368,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
  * @service $q
  * @service DreamFactory
  */
-    // TODO: Add delete users with role
     .directive('editRole', ['MODAUTH_ASSET_PATH', 'accessManagementEventsService', 'accessManagementRulesService', '$q', 'DreamFactory',
         function (MODAUTH_ASSET_PATH, accessManagementEventsService, accessManagementRulesService, $q, DreamFactory) {
 
@@ -1439,7 +1460,10 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     scope.removeRole = function () {
 
                         // Call complex implementation
-                        scope._removeRole();
+                        if (scope._confirmRemoveRole()) {
+
+                            scope._confirmRemoveRoleUsers() ? scope._removeRole(true) : scope._removeRole();
+                        }
                     };
 
                     /**
@@ -1466,6 +1490,27 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         The Private Api is where we create small targeted functions to be used in the Complex
                         Implementations section
                      */
+
+                    /**
+                     * Confirm role to delete
+                     *
+                     * @returns {bool}
+                     * @private
+                     */
+                    scope._confirmRemoveRole = function () {
+
+                        return confirm('Are you sure you want to remove ' + scope.role.name);
+                    };
+
+                    /**
+                     * Confirm delete all users with this role
+                     *
+                     * @returns {bool}
+                     * @private
+                     */
+                    scope._confirmRemoveRoleUsers = function () {
+                        return confirm('Would you like to remove all users with in this role?')
+                    };
 
                     /**
                      * Creates a request object to pass to DreamFactory SDK functions
@@ -1712,7 +1757,13 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                      * @throws AccessManagement Roles Error
                      * @private
                      */
-                    scope._removeRole = function () {
+                    scope._removeRole = function (deleteUsersBool) {
+
+                        var successMessagesObj = {
+                                assignMassUsers: {
+                                    removeUsers: deleteUsersBool
+                            }
+                        }
 
                         // Pass our role to the remove function
                         // and handle the returned promise
@@ -1720,6 +1771,10 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                             // Success
                             function (result) {
+
+                                // Let the children know we were successful and pass an object
+                                // containing any params on what they should do on success
+                                scope.$broadcast(scope.es.removeRoleSuccess, successMessagesObj);
 
                                 // Let the parent know we were successful in removing ourselves
                                 scope.$emit(scope.es.removeRoleSuccess, result);
@@ -2076,6 +2131,21 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         })
                     });
 
+                    // Listen for parent to remove a role
+                    scope.$on(accessManagementEventsService.roleEvents.removeRoleSuccess, function (e, successMessageObj) {
+
+                        // Do we want this directive to ask for user removal
+                        if (successMessageObj.assignMassUsers.removeUsers) {
+
+                            // toggle the users of this role selected
+                            scope._toggleEachRecord(scope.usersWithRole, true);
+
+                            // pass them up for deletion by the usersMaster directive
+                            scope.$emit(scope.es.removeRoleUsers, scope.usersWithRole);
+                        }
+
+                    });
+
 
                     // WATCHERS AND INIT
 
@@ -2422,7 +2492,8 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
             },
             assignMassUsersEvents: {
                 assignRole: 'assign:role',
-                unassignRole: 'unassign:role'
+                unassignRole: 'unassign:role',
+                removeRoleUsers: 'remove:role:users'
             }
         }
     }])
