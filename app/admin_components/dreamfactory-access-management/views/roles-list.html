@@ -1,0 +1,12 @@
+<div>
+    <div data-ng-show="rolesListActive">
+
+        <role-list-item role="role" data-ng-repeat="role in roles"></role-list-item>
+    </div>
+
+    <div data-ng-show="roleDetailActive">
+
+        <!-- **Isolate Scope** have to pass in the users -->
+        <role-item-detail role="selectedRole" users="users" apps="apps"></role-item-detail>
+    </div>
+</div>

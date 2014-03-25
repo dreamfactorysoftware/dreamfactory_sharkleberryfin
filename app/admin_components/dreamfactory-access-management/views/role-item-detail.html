@@ -1,11 +1,14 @@
+<!-- Single role Edit Display -->
 <div>
 
-    <!-- Create User Actions -->
+    <!-- Single role Actions -->
     <div class="well well-sm">
         <div class="btn-toolbar">
             <div class="btn-group pull-right">
                 <button type="button" class="btn btn-default btn-primary" data-ng-click="closeRole()">Close</button>
-                <button type="button" class="btn btn-default btn-primary" data-ng-click="createRole()">Create</button>
+                <button type="button" class="btn btn-default btn-primary" data-ng-click="saveRole()">Save</button>
+                <button type="button" class="btn btn-default btn-primary" data-ng-click="removeRole()">Delete</button>
+                <button type="button" class="btn btn-default btn-primary" data-ng-click="revertRole()">Revert</button>
             </div>
         </div>
     </div>
@@ -19,7 +22,7 @@
         <!-- Single role Edit Form -->
         <div class="row">
             <div class="col-xs-12">
-                <form name="create-role">
+                <form name="role-edit">
 
                     <div class="col-xs-12">
                         <div class="form-group">
@@ -41,17 +44,15 @@
                         </div>
                     </div>
 
-                    <!--
                     <div class="col-xs-12">
                         <div class="form-group">
                             <label for="mass-assign-users">Assign Users to Role</label>
 
                             <div id="mass-assign-users">
-                                <mass-assign-users role-id="{{role.id}}" users="users"></mass-assign-users>
+                               <mass-assign-users></mass-assign-users>
                             </div>
                         </div>
                     </div>
-                    -->
 
                     <div class="col-xs-12">
                         <div class="form-group">
@@ -62,10 +63,11 @@
                             </div>
                         </div>
                     </div>
+
                 </form>
             </div>
         </div>
         <!-- End Single role Edit Form -->
     </div>
 </div>
-<!-- End Single User Edit Display -->
+<!-- End Single role Edit Display -->

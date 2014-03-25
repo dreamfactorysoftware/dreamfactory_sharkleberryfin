@@ -1,3 +1,6 @@
-<select data-ng-model="roleModel" data-ng-options="role.id as role.name for role in roles">
-    <option value="null">Select a Role</option>
-</select>
+<div>
+    <label for="select-roles">Assign a Role:</label>
+    <select id="select-roles" data-ng-model="roleModel" data-ng-options="role.id as role.name for role in roles">
+        <option value="null">Select a Role</option>
+    </select>
+</div>

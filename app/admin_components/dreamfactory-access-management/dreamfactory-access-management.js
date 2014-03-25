@@ -99,13 +99,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         return records;
                     };
 
-                    $scope._toggleEachRecord = function (dataObj, bool) {
-
-                        angular.forEach(dataObj, function (value, index) {
-                            value['dfUISelected'] = bool;
-                        });
-                    };
-
                     $scope._getRolesData = function (requestObj) {
 
                         var defer = $q.defer();
@@ -177,7 +170,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         $scope._getRolesData().then(
                             function (result) {
                                 $scope.roles = $scope._addUIProperties(result.record);
-                                console.log($scope.roles);
                             },
                             function (reject) {
                                 throw 'AccessManagement Module Error: ' + reject.error[0].message
@@ -619,6 +611,8 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                     scope.$on(scope.es.removeUsers, function(e, usersDataArr) {
 
+                        console.log(usersDataArr);
+
                         scope._removeUsers(usersDataArr);
                     });
 
@@ -816,7 +810,9 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 templateUrl: MODAUTH_ASSET_PATH + 'views/user-item-detail.html',
                 scope: {
                     user: '=',
-                    roles: '='
+                    roles: '=',
+                    apps: '='
+
                 },
                 link: function(scope, elem, attrs) {
 
@@ -1217,7 +1213,8 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 templateUrl: MODAUTH_ASSET_PATH + 'views/create-user.html',
                 scope: {
                     user: '=',
-                    roles: '='
+                    roles: '=',
+                    apps: '='
                 },
                 link: function (scope, elem, attrs) {
 
@@ -1227,9 +1224,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     // PUBLIC API
                     scope.closeUser = function () {
 
-                        if (scope._confirmUnsavedClose()) {
-                            scope._closeUser();
-                        }
+                        scope._confirmUnsavedClose() ? scope._closeUser() : false;
                     };
 
                     scope.createUser = function () {
@@ -1306,16 +1301,9 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                     // WATCHERS AND INIT
 
-                    scope.$watch('user', function(newValue, oldValue) {
-
-                        console.log(scope.roles)
-                    })
-
                 }
             }
         }])
-
-
     .directive('rolesMaster', ['$q', 'MODAUTH_ASSET_PATH', 'DreamFactory', 'accessManagementRulesService', 'accessManagementEventsService',
         function ($q, MODAUTH_ASSET_PATH, DreamFactory, accessManagementRulesService, accessManagementEventsService) {
 
@@ -1331,6 +1319,10 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     scope.es = accessManagementEventsService.rolesEvents;
 
                     // PUBLIC VARS
+
+                    scope.viewRolesListActive = true;
+                    scope.viewCreateRoleActive = false;
+
                     scope.active = false;
                     scope.id = 'roles';
                     scope.toggleAllRolesBool = false;
@@ -1340,6 +1332,38 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     // PUBLIC API
+                    scope._showViewRolesList = function () {
+
+                        scope.viewRolesListActive = true;
+                    };
+
+                    scope._hideViewRolesList = function () {
+
+                        scope.viewRolesListActive = false;
+                    };
+
+                    scope._showViewCreateRole = function () {
+
+                        scope.viewCreateRoleActive = true;
+                    };
+
+                    scope._hideViewCreateRole = function () {
+
+                        scope.viewCreateRoleActive = false;
+                    };
+
+                    scope._toggleViewRolesListActive = function () {
+
+                        scope._showViewRolesList();
+                        scope._hideViewCreateRole();
+                    };
+
+                    scope._toggleViewCreateRolesActive = function () {
+
+                        scope._showViewCreateRole();
+                        scope._hideViewRolesList();
+                    };
+                    
                     scope.openModuleNavigation = function () {
 
                         scope.$emit(accessManagementEventsService.module.openModuleNavigation);
@@ -1527,9 +1551,10 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     // COMPLEX IMPLEMENTATION
                     scope._createRole = function () {
 
-                        scope.newRole = scope._createRoleModel();
+                        scope._toggleViewCreateRolesActive();
+                        scope.newRole = angular.copy(scope._createRoleModel());
+                        console.log(scope.newRole);
                         scope.topLevelNavigation = false;
-                        scope.$broadcast(accessManagementEventsService.roleEvents.openRoleSingle, scope.newRole);
                     };
 
                     scope._toggleAllRoles = function () {
@@ -1559,9 +1584,29 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         );
                     };
 
-                    scope._revertAllRoles = function () {
+                    scope._revertAllRoles = function (rolesDataArr) {
 
-                        scope.$broadcast(scope.es.revertAllRoles)
+                        rolesDataArr = rolesDataArr || scope.roles;
+
+                        angular.forEach(rolesDataArr, function(obj) {
+
+                            if (obj.dfUIUnsaved && obj.roleCopy) {
+
+                                var roleCopy = obj.roleCopy;
+
+                                for (var key in obj) {
+                                    if(obj.hasOwnProperty(key)) {
+                                        obj[key] = roleCopy[key]
+                                    }
+                                }
+                            }
+
+                            if (obj.dfUIUnsaved) {
+                                obj.dfUIUnsaved = false;
+                            }
+
+                            delete obj.roleCopy;
+                        });
                     };
 
                     scope._removeRoles = function (rolesDataArr) {
@@ -1609,13 +1654,12 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     scope.$on(accessManagementEventsService.roleEvents.openRoleSuccess, function (e, roleDataObj) {
 
                         scope.topLevelNavigation = false;
-                        scope.$broadcast(accessManagementEventsService.roleEvents.openRoleSingle, roleDataObj);
                     });
 
                     scope.$on(accessManagementEventsService.roleEvents.closeRoleSuccess, function (e) {
 
                         scope.topLevelNavigation = true;
-                        scope.$broadcast(accessManagementEventsService.roleEvents.closeRoleSingle);
+                        scope._toggleViewRolesListActive();
                     });
 
                     scope.$on(accessManagementEventsService.roleEvents.removeRoleSuccess, function (e, roleDataObj) {
@@ -1640,44 +1684,157 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 }
             }
         }])
-
-/**
- *
- * Creates a role display object with a list and edit mode.
- *
- * @constant MODAUTH_ASSET_PATH
- * @service accessMangementEventsService
- * @service accessManagementRulesService
- * @service $q
- * @service DreamFactory
- */
-    .directive('editRole', ['MODAUTH_ASSET_PATH', 'accessManagementEventsService', 'accessManagementRulesService', '$q', 'DreamFactory',
-        function (MODAUTH_ASSET_PATH, accessManagementEventsService, accessManagementRulesService, $q, DreamFactory) {
+    .directive('rolesList', ['MODAUTH_ASSET_PATH', 'accessManagementEventsService',
+        function(MODAUTH_ASSET_PATH, accessManagementEventsService) {
 
             return {
                 restrict: 'E',
-                templateUrl: MODAUTH_ASSET_PATH + 'views/edit-role.html',
+                templateUrl: MODAUTH_ASSET_PATH + 'views/roles-list.html',
                 scope: true,
-                link: function (scope, elem, attrs) {
+                link: function(scope, elem, attrs) {
+
+                    scope.rolesListActive = true;
+                    scope.roleDetailActive = false;
+                    scope.selectedRole = null;
+
+                    //PUBLIC API
+                    scope.openRoleRecord = function (userDataObj) {
+
+                        scope._openRoleRecord(userDataObj);
+                    };
+
+
+                    // PRIVATE API
+                    scope._hideRolesList = function () {
+
+                        scope.rolesListActive = false;
+                    };
+
+                    scope._showRolesList = function () {
+
+                        scope.rolesListActive = true
+                    };
+
+                    scope._hideRoleDetail = function () {
+
+                        scope.roleDetailActive = false
+                    };
+
+                    scope._showRoleDetail = function () {
+
+                        scope.roleDetailActive = true;
+                    };
+
+                    scope._toggleListActive = function () {
+
+                        scope._hideRoleDetail();
+                        scope._showRolesList()
+                    };
+
+                    scope._toggleDetailActive = function () {
+
+                        scope._hideRolesList();
+                        scope._showRoleDetail();
+                    };
+
+                    scope._setSelectedRole = function (roleDataObj) {
+
+                        scope.selectedRole = roleDataObj;
+                    };
+
+
+
+                    // COMPLEX IMPLEMENTATION
+                    scope._openRoleRecord = function (roleDataObj) {
+
+                        scope._toggleDetailActive();
+                        scope._setSelectedRole(roleDataObj);
+                    };
+
+                    scope._closeRoleRecord = function () {
+
+                        scope._toggleListActive();
+                    };
+
+
+                    // HANDLE EVENTS
+                    scope.$on(accessManagementEventsService.roleEvents.closeRoleSuccess, function (e) {
+
+                        scope._closeRoleRecord();
+                    });
+                }
+            }
+    }])
+    .directive('roleListItem', ['MODAUTH_ASSET_PATH', function(MODAUTH_ASSET_LIST) {
+        return {
+            restrict: 'E',
+            templateUrl: MODAUTH_ASSET_LIST + 'views/role-list-item.html',
+            scope: true,
+            link: function(scope, elem, attrs) {
+
+
+                // PUBLIC API
+                /**
+                 * Interface for selecting a record
+                 */
+                scope.selectRole = function () {
+
+                    // Call complex implementation
+                    scope._selectRole();
+                };
+
+
+                // PRIVATE API
+                /**
+                 * Toggle dfUISelected property on scope.role
+                 *
+                 * @private
+                 */
+                scope._setRoleSelected = function () {
+
+                    scope.role.dfUISelected = !scope.role.dfUISelected;
+                };
+
+
+                // COMPLEX IMPLEMENTATION
+                /**
+                 * Selects record
+                 *
+                 * @emit selectRoleSuccess
+                 * @private
+                 */
+                scope._selectRole = function () {
+
+                    scope._setRoleSelected();
+                    scope.$emit(scope.es.selectRoleSuccess)
+                };
+
+
+                // WATCHERS AND INIT
+
+
+            }
+        }
+    }])
+    .directive('roleItemDetail', ['MODAUTH_ASSET_PATH', 'accessManagementEventsService', 'accessManagementRulesService', '$q', 'DreamFactory',
+        function(MODAUTH_ASSET_PATH, accessManagementEventsService, accessManagementRulesService, $q, DreamFactory) {
+
+            return {
+                restrict: 'E',
+                templateUrl: MODAUTH_ASSET_PATH + 'views/role-item-detail.html',
+                scope: {
+                    role: '=',
+                    users: '=',
+                    apps: '='
+                },
+                link: function(scope, elem, attrs) {
+
 
                     /**
                      * Short name for accessManagementEventsService.recordEvents
                      * @type {service}
                      */
                     scope.es = accessManagementEventsService.roleEvents;
-
-
-                    /**
-                     * Toggles view active in template
-                     * @type {boolean}
-                     */
-                    scope.active = false;
-
-                    /**
-                     * Toggles view hidden when another role is active
-                     * @type {boolean}
-                     */
-                    scope.singleRoleActive = false;
 
                     /**
                      * Stores a copy of the role for the revert function
@@ -1689,35 +1846,20 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                      * Store the form name
                      * @type {string}
                      */
-                    scope.formName = 'role-edit-' + scope.role.id;
+                    scope.formName = 'role-edit';
 
 
-                    /**
-                     * Copies the role for revert
-                     */
-                    scope.init = function () {
-
-                        scope.roleCopy = scope._copyRole(scope.role);
-                    };
 
 
                     // PUBLIC API
                     /*
-                        The Public Api section is meant to interact with the template.
-                        Each function calls it's private complement to actually do the work.
-                        It's a little bit more overhead but we get a few things out of it.
-                        1. We have a clean interface with an underlying implementation that can be changed easily
-                        2. We can setup hooks for pre and post processing if we choose to.
-                    */
-
-                    /**
-                     * Interface for opening a record
+                     The Public Api section is meant to interact with the template.
+                     Each function calls it's private complement to actually do the work.
+                     It's a little bit more overhead but we get a few things out of it.
+                     1. We have a clean interface with an underlying implementation that can be changed easily
+                     2. We can setup hooks for pre and post processing if we choose to.
                      */
-                    scope.openRole = function () {
 
-                        // Call complex implementation
-                        scope._openRole();
-                    };
 
                     /**
                      * Interface for closing a record
@@ -1742,7 +1884,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                      */
                     scope.removeRole = function () {
 
-                        // Call complex implementation
+                        // Call Complex Implementation
                         if (scope._confirmRemoveRole()) {
 
                             scope._confirmRemoveRoleUsers() ? scope._removeRole(true) : scope._removeRole();
@@ -1758,42 +1900,13 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         scope._revertRole();
                     };
 
-                    /**
-                     * Interface for selecting a record
-                     */
-                    scope.selectRole = function () {
-
-                        // Call complex implementation
-                        scope._selectRole();
-                    };
 
 
                     // PRIVATE API
                     /*
-                        The Private Api is where we create small targeted functions to be used in the Complex
-                        Implementations section
+                     The Private Api is where we create small targeted functions to be used in the Complex
+                     Implementations section
                      */
-
-                    /**
-                     * Confirm role to delete
-                     *
-                     * @returns {bool}
-                     * @private
-                     */
-                    scope._confirmRemoveRole = function () {
-
-                        return confirm('Are you sure you want to remove ' + scope.role.name);
-                    };
-
-                    /**
-                     * Confirm delete all users with this role
-                     *
-                     * @returns {bool}
-                     * @private
-                     */
-                    scope._confirmRemoveRoleUsers = function () {
-                        return confirm('Would you like to remove all users with in this role?')
-                    };
 
                     /**
                      * Creates a request object to pass to DreamFactory SDK functions
@@ -1819,7 +1932,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     };
 
                     /**
-                     * Wrapper for DreamFactory SDK function
+                     * Wrapper for DreamFactory SDK updateRole function
                      *
                      * @param roleDataObj
                      * @returns {promise|Promise.promise|exports.promise|Q.promise}
@@ -1827,30 +1940,25 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                      */
                     scope._saveRoleToSystem = function (roleDataObj) {
 
-                        // Create a deferred object
                         var defer = $q.defer();
 
-                        // Call DreamFactory SDK method
                         DreamFactory.api.system.updateRole(
                             scope._makeRequest(roleDataObj, '*'),
                             function (data) {
 
-                                // resolve promise
                                 defer.resolve(data);
                             },
                             function (error) {
 
-                                // reject promise
                                 defer.reject(error);
                             }
                         );
 
-                        // return promise
                         return defer.promise;
                     };
 
                     /**
-                     * Wrapper for DreamFactory SDK function
+                     * Wrapper for DreamFactory SDK deleteRole function
                      *
                      * @param roleDataObj
                      * @returns {promise|Promise.promise|exports.promise|Q.promise}
@@ -1858,25 +1966,20 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                      */
                     scope._removeRoleFromSystem = function (roleDataObj) {
 
-                        // Create a deferred object
                         var defer = $q.defer();
 
-                        // Call DreamFactory SDK method
                         DreamFactory.api.system.deleteRole(
                             scope._makeRequest(roleDataObj, '*'),
                             function (data) {
 
-                                // resolve promise
                                 defer.resolve(data);
                             },
                             function (error) {
 
-                                // reject promise
                                 defer.reject(error);
                             }
                         );
 
-                        // return promise
                         return defer.promise;
 
                     };
@@ -1890,7 +1993,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     scope._checkAutoClose = function () {
 
                         return accessManagementRulesService.autoCloseRoleDetail;
-
                     };
 
                     /**
@@ -1901,15 +2003,27 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                      */
                     scope._checkUnsavedChanges = function () {
 
-                        // check if form is $dirty
-                        if (scope['role-edit-' + scope.role.id].$dirty) {
+                        // Check if our edit form is dirty
+                        if (scope[scope.formName].$dirty) {
 
-                            // it is.  Set dfUIUnsaved property
+                            // it is so set some props
                             scope.role.dfUIUnsaved = true;
+
+                            // and copy our backup to the obj in case we want to
+                            // revert later/mass revert
+                            scope.role['roleCopy'] = scope._copyRole(scope.roleCopy);
                         } else {
 
-                            // it's not.  Set dfUIUnsaved property
+                            // Our form was not dirty
+                            // set the dfUIUnsaved prop to relfect that
                             scope.role.dfUIUnsaved = false;
+
+                            // delete any safe copies.
+                            // we don't need them b/c the current
+                            // state of the model is whats on the server.
+                            if (scope.role['roleCopy']) {
+                                delete scope.role.roleCopy;
+                            }
                         }
                     };
 
@@ -1926,50 +2040,121 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     };
 
                     /**
+                     * Set the edit role form to a pristine state
+                     * @private
+                     */
+                    scope._setFormPristine = function () {
+
+                        scope[scope.formName].$setPristine();
+                    };
+
+                    /**
+                     * Set the edit role form to a dirty state
+                     * @private
+                     */
+                    scope._setFormDirty = function () {
+
+                        scope[scope.formName].$setDirty();
+                    };
+
+                    /**
+                     * Set form state based on role saved status
+                     * @param roleDataObj
+                     * @private
+                     */
+                    scope._setFormState = function (roleDataObj) {
+
+                        // Sets the form state based on role obj property
+                        roleDataObj.dfUIUnsaved ? scope._setFormDirty() : scope._setFormPristine();
+                    };
+
+                    /**
+                     * Sets the local scope.role and scope.roleCopy to null
+                     * @private
+                     */
+                    scope._setLocalRoleNull = function () {
+
+                        // Set the current role to null this way if we select the
+                        // same role again it will trigger the watcher
+                        scope.role = null;
+
+                        // Set the current role copy to null
+                        scope.roleCopy = null;
+                    };
+
+                    /**
+                     * Confirm Role removal from system
+                     * @returns {bool}
+                     * @private
+                     */
+                    scope._confirmRemoveRole = function () {
+
+                        return confirm('Remove ' + scope.role.name + '?');
+                    };
+
+                    /**
+                     * Confirm delete all users with this role
+                     *
+                     * @returns {bool}
+                     * @private
+                     */
+                    scope._confirmRemoveRoleUsers = function () {
+                        return confirm('Would you like to remove all users with in this role?')
+                    };
+
+                    /**
                      * Sets the current role to the most recent copy of itself
                      *
                      * @private
                      */
                     scope._revertRoleData = function () {
 
-                        scope.role = scope._copyRole(scope.roleCopy);
+                        // copy props from backup copy obj to working obj
+                        for(var key in scope.roleCopy) {
+                            if (scope.role.hasOwnProperty(key)) {
+                                scope.role[key] = scope.roleCopy[key];
+                            }
+                        }
                     };
 
                     /**
-                     * Toggle dfUISelected property on scope.role
-                     *
-                     * @private
+                     * Determines what role data to use as copy for reversion
                      */
-                    scope._setRoleSelected = function () {
+                    scope._setRoleCopy = function (roleDataObj) {
 
-                        scope.role.dfUISelected = !scope.role.dfUISelected;
+                        if (roleDataObj.roleCopy) {
+                            scope.roleCopy = scope._copyRole(roleDataObj.roleCopy);
+                        }else {
+                            scope.roleCopy = scope._copyRole(roleDataObj);
+                        }
                     };
+
+
 
 
                     // COMPLEX IMPLEMENTATION
-                    /*
-                        The Complex Implementation section is where almost all of the heavy lifting
-                        is done.  When the user requests an action through the Public Api...these
-                        functions are the counterparts that make it happen.  For the most part we
-                        try to use our Private Api to perform most of the functions.  However, sometimes
-                        it just doesn't make sense to have a function set a value for us.
-                     */
 
                     /**
-                     * Sets active property to true.
+                     * Some init for the open record
                      *
-                     * @emit openRoleSuccess
-                     * @emitData scope.role
+                     * @emit closeRoleSucess
                      * @private
                      */
-                    scope._openRole = function () {
+                    scope._openRole = function (roleDataObj) {
 
-                        // Set active to true
-                        scope.active = true;
+                        // Set the form state to dirty or clean based on the
+                        // scope.role.dfUIUnsaved property
+                        scope._setFormState(roleDataObj);
 
-                        // Emit message to parent to ask other roles to hide.
-                        scope.$emit(scope.es.openRoleSuccess, scope.role);
+                        // Decide what to make a copy of..
+                        // the original scope obj or use the copy
+                        // that resides in the model if previously unsaved
+                        scope._setRoleCopy(roleDataObj);
+
+                        // Let the parent know we are successful
+                        scope.$emit(scope.es.openRoleSuccess);
                     };
+
 
                     /**
                      * Closes record
@@ -1979,7 +2164,17 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                      */
                     scope._closeRole = function () {
 
-                        // Emit message to parent to show other records
+                        // Check for unsaved changes on the model
+                        scope._checkUnsavedChanges();
+
+                        // Set the form clean for the next role
+                        scope._setFormPristine();
+
+                        // Reset the local role
+                        scope._setLocalRoleNull();
+
+                        // Alert our parent to the fact that we're done with our
+                        // closing routine
                         scope.$emit(scope.es.closeRoleSuccess);
                     };
 
@@ -2021,12 +2216,10 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                                     // we should
                                     scope.closeRole();
-                                };
+                                }
 
                                 // Let the parents know we were successful and don't pass the user
                                 scope.$emit(scope.es.saveRoleSuccess, result);
-
-
 
                             },
 
@@ -2045,11 +2238,13 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                      */
                     scope._removeRole = function (deleteUsersBool) {
 
+                        // Create a message obj to pass to any children
+                        // with success options for their routines
                         var successMessagesObj = {
-                                assignMassUsers: {
-                                    removeUsers: deleteUsersBool
+                            assignMassUsers: {
+                                removeUsers: deleteUsersBool
                             }
-                        }
+                        };
 
                         // Pass our role to the remove function
                         // and handle the returned promise
@@ -2075,7 +2270,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                                 throw 'AccessManagement Roles Error: ' + reject.error[0].message
                             }
                         );
-                    }
+                    };
 
                     /**
                      * Reverts record to load or most recent saved state
@@ -2092,7 +2287,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         scope.$broadcast(scope.es.revertRole);
 
                         // set the form to a pristine state
-                        scope['role-edit-' + scope.role.id].$setPristine();
+                        scope[scope.formName].$setPristine();
 
                         // check to make sure the form is pristine
                         // if so set scope.role.dfUIUnsaved to false
@@ -2100,102 +2295,112 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     };
 
 
-                    /**
-                     * Selects record
-                     *
-                     * @emit selectRoleSuccess
-                     * @private
-                     */
-                    scope._selectRole = function () {
 
-                        // toggle the records select status
-                        scope._setRoleSelected();
-                    };
+                    // WATCHERS AND INIT
+                    scope.$watch('role', function(newValue, oldValue) {
 
-
-                    // HANDLE MESSAGES
-                    /*
-                        The Handle Messages section does just that.  Here we handle inter-directive
-                        communications.  **NOTE** We store our event names in the accessManagementEventsService
-                        as they will appear in multiple places and if we choose to rename an event for any reason
-                        we will only have to do so in one place.
-                     */
-                    /**
-                     * Checks if this is the record the parent requests opened
-                     */
-                    scope.$on(scope.es.openRoleSingle, function (e, roleDataObj) {
-
-                        // if the role's id that is to be edited matches this role's id
-                        if (roleDataObj.id !== scope.role.id) {
-
-                            // set true
-                            // Everyone else will be false by default
-                            scope.singleRoleActive = true;
+                        if (newValue) {
+                            scope._openRole(newValue);
                         }
                     });
 
-                    /**
-                     * Closes the record on parent request
-                     */
-                    scope.$on(scope.es.closeRoleSingle, function (e) {
-
-                        // check to make sure the form is pristine
-                        // if so set scope.role.dfUIUnsaved to false
-                        scope._checkUnsavedChanges();
-
-                        // set these to false
-                        // we are no longer the active role for editing
-                        scope.singleRoleActive = false;
-                        scope.active = false;
-                    });
-
-                    /**
-                     * Sets record to saved state on parent request
-                     */
-                    scope.$on(accessManagementEventsService.rolesEvents.saveAllRolesSuccess, function (e) {
-
-                        // Broadcast a message to child directives that we are saving
-                        // and they should run their save routines
-                        scope.$broadcast(scope.es.saveRole);
-
-                        // Set the form to pristine
-                        scope['role-edit-' + scope.role.id].$setPristine();
-
-                        // check if the form is pristine
-                        // if so this sets dfUIUnsaved property to false
-                        scope._checkUnsavedChanges();
-
-                        // Update the local copy of the record
-                        // use _copyRole so we don;t just get a reference
-                        scope.copyRole = scope._copyRole(scope.role);
-                    });
-
-                    /**
-                     * Reverts role to load or most recent saved state
-                     */
-                    scope.$on(accessManagementEventsService.rolesEvents.revertAllRoles, function(e) {
-
-                        // Call revert routine
-                        scope._revertRole();
-                    });
-
-                    /**
-                     * Clean up when destroyed
-                     */
-                    scope.$on('$destroy', function () {
-
-                    });
-
-
-                    // INIT AND WATCHERS
-                    /**
-                     * Fire the init function
-                     */
-                    scope.init();
                 }
             }
         }])
+    .directive('createRole', ['$q', 'MODAUTH_ASSET_PATH', 'accessManagementEventsService', 'DreamFactory',
+        function ($q, MODAUTH_ASSET_PATH, accessManagementEventsService, DreamFactory) {
 
+            return {
+                restrict: 'E',
+                templateUrl: MODAUTH_ASSET_PATH + 'views/create-role.html',
+                scope: {
+                    role: '=',
+                    apps: '='
+                },
+                link: function (scope, elem, attrs) {
+
+                    scope.es = accessManagementEventsService.roleEvents;
+
+                    scope.active = false;
+
+
+                    // PUBLIC API
+                    scope.closeRole = function () {
+
+                        scope._confirmUnsavedClose() ? scope._closeRole() : false;
+                    };
+
+                    scope.createRole = function () {
+
+                        scope._createRole();
+                    };
+
+
+                    // PRIVATE API
+                    scope._confirmUnsavedClose = function () {
+
+                        if (scope['create-role'].$dirty) {
+                            return confirm('Discard unsaved changes?');
+                        } else {
+                            return true;
+                        }
+                    };
+
+                    scope._createRoleOnSystem = function () {
+
+                        var defer = $q.defer();
+
+                        var requestObj = {
+                            body: {
+                                record: scope.role
+                            },
+                            fields: '*',
+                            related: null
+                        };
+
+                        DreamFactory.api.system.createRoles(
+                            requestObj,
+                            function (data) {
+
+                                defer.resolve(data);
+                            },
+                            function (error) {
+
+                                defer.reject(error);
+                            }
+                        );
+
+                        return defer.promise;
+                    };
+
+
+                    // COMPLEX IMPLEMENTATION
+                    scope._closeRole = function () {
+
+                        scope['create-role'].$setPristine();
+                        scope.$emit(scope.es.closeRoleSuccess);
+                    };
+
+                    scope._createRole = function () {
+
+                        scope._createRoleOnSystem().then(
+                            function (result) {
+
+                                scope['create-role'].$setPristine();
+                                scope.$emit(scope.es.createRoleSuccess, result.record[0]);
+                                scope.closeRole();
+                            },
+                            function (reject) {
+
+                                console.log(reject);
+                                scope.$emit(scope.es.createRoleError, error);
+                            });
+                    };
+
+
+                }
+            }
+        }])
     .directive('massAssignUsers', ['MODAUTH_ASSET_PATH', 'accessManagementEventsService',
         function (MODAUTH_ASSET_PATH, accessManagementEventsService) {
 
@@ -2414,7 +2619,10 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         if (successMessageObj.assignMassUsers.removeUsers) {
 
                             // toggle the users of this role selected
-                            scope._toggleEachRecord(scope.usersWithRole, true);
+                            angular.forEach(scope.usersWithRole, function(obj) {
+
+                                obj.dfUISelected = true;
+                            });
 
                             // pass them up for deletion by the usersMaster directive
                             scope.$emit(scope.es.removeRoleUsers, scope.usersWithRole);
@@ -2424,16 +2632,34 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     // WATCHERS AND INIT
+                    // watch scope.role on parent directive
+                    var watchRole = scope.$watch('role', function(newValue, oldValue) {
+
+                        // Do we have a role
+                        if (scope.role !== null) {
+
+                            // make a local copy of the users
+                            scope.massAssignUsers = angular.copy(scope.users);
+
+                            // sort the users into two groups.
+                            // Ones that have the current role and ones that don't
+                            scope.__sortUsers(scope.massAssignUsers);
+                        }
+                    });
 
                     // watch scope.users from the top module
                     var watchUsers = scope.$watchCollection('users', function (newValue, oldValue) {
 
-                        // make a local copy of the users
-                        scope.massAssignUsers = angular.copy(newValue);
+                        // Do we have a role
+                        if (scope.role !== null) {
 
-                        // sort the users into two groups.
-                        // Ones that have the current role and ones that don't
-                        scope.__sortUsers(scope.massAssignUsers);
+                            // make a local copy of the users
+                            scope.massAssignUsers = angular.copy(newValue);
+
+                            // sort the users into two groups.
+                            // Ones that have the current role and ones that don't
+                            scope.__sortUsers(scope.massAssignUsers);
+                        }
                     });
 
                     // watch the totalSelectedUsers value
@@ -2448,7 +2674,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                             form.$setDirty();
 
                             // we also set the dfUIUnsaved to trigger the UI unsaved state
-                            // basically turn the role record orange in the UI
+                            // basically turn the role record to warning color in the UI
                             scope.dfUIUnsaved = true;
                         }
                     });
@@ -2476,112 +2702,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
             }
         }
     }])
-    .directive('createRole', ['$q', 'MODAUTH_ASSET_PATH', 'accessManagementEventsService', 'DreamFactory',
-        function ($q, MODAUTH_ASSET_PATH, accessManagementEventsService, DreamFactory) {
-
-            return {
-                restrict: 'E',
-                templateUrl: MODAUTH_ASSET_PATH + 'views/create-role.html',
-                scope: true,
-                link: function (scope, elem, attrs) {
-
-                    scope.es = accessManagementEventsService.roleEvents;
-
-                    scope.active = false;
-                    scope.singleRoleActive = false;
-
-
-                    // PUBLIC API
-                    scope.closeRole = function () {
-
-                        scope._closeRole();
-                    };
-
-                    scope.createRole = function () {
-
-                        scope._createRole();
-                    };
-
-
-                    // PRIVATE API
-                    scope._confirmUnsavedClose = function () {
-
-                        if (scope['create-role'].$dirty) {
-                            return confirm('Discard unsaved changes?');
-                        } else {
-                            return true;
-                        }
-                    };
-
-                    scope._createRoleOnSystem = function () {
-
-                        var defer = $q.defer();
-
-                        var requestObj = {
-                            body: {
-                                record: scope.role
-                            },
-                            fields: '*',
-                            related: null
-                        };
-
-                        DreamFactory.api.system.createRoles(
-                            requestObj,
-                            function (data) {
-
-                                defer.resolve(data);
-                            },
-                            function (error) {
-
-                                defer.reject(error);
-                            }
-                        );
-
-                        return defer.promise;
-                    };
-
-
-                    // HANDLE MESSAGES
-                    scope._closeRole = function () {
-
-                        if (scope._confirmUnsavedClose()) {
-                            scope['create-role'].$setPristine();
-                            scope.$emit(scope.es.closeRoleSuccess);
-                        }
-                    };
-
-                    scope._createRole = function () {
-
-                        scope._createRoleOnSystem().then(
-                            function (result) {
-
-                                scope['create-role'].$setPristine();
-                                scope.$emit(scope.es.createRoleSuccess, result.record[0]);
-                                scope.closeRole();
-                            },
-                            function (reject) {
-
-                                console.log(reject);
-                                scope.$emit(scope.es.createRoleError, error);
-                            });
-                    };
-
-                    scope.$on(scope.es.closeRoleSingle, function (e) {
-
-                        scope.active = false;
-                    });
-
-                    scope.$on(scope.es.openRoleSingle, function (e, roleDataObj) {
-
-                        if (roleDataObj.id === null) {
-                            scope.active = true;
-                            scope.role = angular.copy(scope.newRole);
-                        }
-                    });
-
-                }
-            }
-        }])
     .directive('configMaster', ['MODAUTH_ASSET_PATH', 'accessManagementRulesService', function(MODAUTH_ASSET_PATH, accessManagementRulesService) {
 
         return {

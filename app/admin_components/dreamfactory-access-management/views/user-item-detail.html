@@ -76,6 +76,11 @@
                         <div class="form-group">
                             <select-role roles="roles" role-model="user.role_id"></select-role>
                         </div>
+
+                        <div class="form-group">
+                            <select-app app-model="user.default_app_id" apps="apps"></select-app>
+                        </div>
+
                         <div class="form-group">
                             <label for="user-active">Active</label>
                             <input type="checkbox" id="user-active" data-ng-model="user.is_active">

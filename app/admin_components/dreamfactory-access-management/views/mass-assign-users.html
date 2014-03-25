@@ -3,7 +3,7 @@
         <div class="col-sm-5 col-xs-12 well no-padding"
              style="background: #fff; height: 150px; overflow-x: hidden; overflow-y:scroll;">
             <ul>
-                <li class="xs-padding sm-padding-h" data-ng-class="user.dfUISelected ? 'record-selected' : ''" data-ng-click="toggleUserSelected(user)" data-ng-repeat="user in usersWithOutRole">{{user.display_name}}</li>
+                <li class="xs-padding sm-padding-h" data-ng-class="user.dfUISelected ? 'record-selected' : ''" data-ng-click="toggleUserSelected(user)" data-ng-repeat="user in usersWithOutRole track by $index">{{user.display_name}}</li>
             </ul>
         </div>
         <div class="col-sm-2 col-xs-12">
@@ -14,7 +14,7 @@
         <div class="col-sm-5 col-xs-12 well no-padding"
              style="background: #fff; height: 150px; overflow-x: hidden; overflow-y:scroll;">
             <ul>
-                <li class="xs-padding sm-padding-h" data-ng-class="user.dfUISelected ? 'record-selected' : ''" data-ng-click="toggleUserSelected(user)" data-ng-repeat="user in usersWithRole">{{user.display_name}}</li>
+                <li class="xs-padding sm-padding-h" data-ng-class="user.dfUISelected ? 'record-selected' : ''" data-ng-click="toggleUserSelected(user)" data-ng-repeat="user in usersWithRole track by $index">{{user.display_name}}</li>
             </ul>
         </div>
     </div>

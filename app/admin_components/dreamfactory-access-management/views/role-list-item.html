@@ -1,0 +1,41 @@
+<!-- List Style Role Display -->
+
+<div class="col-xs-12">
+    <div class="row record" data-ng-class="role.dfUIUnsaved ? 'record-warning' : ''">
+        <div class="col-xs-2 col-sm-2 col-md-2 col-lg-1 rounded-left record-id" data-ng-click="selectRole()"
+             data-ng-model="role.dfUISelected"
+             data-ng-class="role.dfUISelected ? 'record-id-selected' : ''"
+             style="text-align: center; padding-top: 8px; padding-bottom: 8px;">
+            <span style="font-size: 24px; font-weight: bold;">{{role.id}}</span>
+            <br>
+            <span class="small">Role Id</span>
+        </div>
+        <div class="col-xs-10 col-sm-10 col-md-10 col-lg-11 rounded-right"
+             data-ng-class="role.dfUISelected ? 'record-selected' : ''"
+             data-ng-click="openRoleRecord(role)" style="padding-top: 5px; padding-bottom: 5px;">
+            <div class="col-xs-12 col-sm-4 col-md-3 col-lg-2">
+                <p style="margin-bottom: 3px; margin-top: 7px;"><span class="text-muted small">Name: </span></p>
+
+                <p><span>{{role.name}}</span></p>
+            </div>
+            <div class="col-md-9 col-lg-7 col-sm-8 hidden-xs">
+                <p style="margin-bottom: 3px; margin-top: 7px;"><span class="text-muted small">Description: </span>
+                </p>
+
+                <p><span>{{role.description}}</span></p>
+            </div>
+            <!--
+            <div class="col-md-4 col-lg-3 hidden-sm hidden-xs">
+                <p style="margin-bottom: 3px; margin-top: 7px;"><span class="text-muted small">Active: </span></p>
+
+                <p><span>{{role.is_active}}</span></p>
+            </div>
+            -->
+            <div class="col-lg-3 hidden-md hidden-sm hidden-xs">
+                <p style="margin-bottom: 3px; margin-top: 7px;"><span class="text-muted small">Created: </span></p>
+
+                <p><span>{{role.created_date}}</span></p>
+            </div>
+        </div>
+    </div>
+</div>

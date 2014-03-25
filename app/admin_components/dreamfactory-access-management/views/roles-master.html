@@ -51,8 +51,15 @@
 
     <div class="row">
         <div class="col-xs-12">
-            <create-role role="newRole"></create-role>
-            <edit-role role="role" data-ng-repeat="role in roles"></edit-role>
+            <div data-ng-show="viewCreateRoleActive">
+
+                <create-role role="newRole" apps="apps"></create-role>
+            </div>
+
+            <div data-ng-show="viewRolesListActive">
+
+                <roles-list></roles-list>
+            </div>
         </div>
     </div>
 

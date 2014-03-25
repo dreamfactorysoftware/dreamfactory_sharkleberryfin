@@ -55,9 +55,9 @@
             <div data-ng-show="viewCreateUserActive">
 
                 <!-- **Isolate Scope** have to pass in roles -->
-                <create-user user="newUser" roles="roles"></create-user>
+                <create-user user="newUser" roles="roles" apps="apps"></create-user>
             </div>
-            <div  data-ng-show="viewUsersListActive">
+            <div data-ng-show="viewUsersListActive">
 
                 <users-list></users-list>
             </div>
