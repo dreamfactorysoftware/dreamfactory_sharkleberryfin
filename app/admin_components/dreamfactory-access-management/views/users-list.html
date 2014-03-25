@@ -1,0 +1,12 @@
+<div>
+    <div data-ng-show="usersListActive">
+        <ul>
+            <user-list-item user="user" data-ng-repeat="user in users"></user-list-item>
+        </ul>
+    </div>
+
+    <div data-ng-show="userDetailActive">
+        <user-item-detail user="selectedUser"></user-item-detail>
+    </div>
+</div>
+

@@ -1,0 +1,47 @@
+<div class="well sm-well">
+    <div class="row">
+
+        <h3>{{stringService.sectionTitle}}</h3>
+        <hr>
+
+        <!-- Column Headers -->
+        <div class="row">
+            <div class="col-xs-12">
+                <h5>Enable</h5>
+            </div>
+        </div>
+
+        <!-- Allow Mass Admin Deletion -->
+        <div class="row">
+            <div class="col-xs-1">
+                <input type="checkbox" data-ng-model="rs.allowMassAdminDeletion">
+            </div>
+            <div class="col-xs-11">
+                {{stringService.allowMassAdminDelete}}
+            </div>
+        </div>
+
+        <!-- Auto Close user edit upon save -->
+        <!--
+        <div class="row">
+            <div class="col-xs-1">
+                <input type="checkbox" data-ng-model="rs.autoCloseUserDetail">
+            </div>
+            <div class="col-xs-11">
+                {{stringService.autoCloseUserDetail}}
+            </div>
+        </div>
+        -->
+
+        <!-- View Users as Table -->
+        <div class="row">
+            <div class="col-xs-1">
+                <input type="checkbox" data-ng-model="rs.viewUsersAsTable">
+            </div>
+            <div class="col-xs-11">
+                {{stringService.viewUsersAsTable}}
+            </div>
+        </div>
+
+    </div>
+</div>

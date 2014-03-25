@@ -10,7 +10,7 @@ angular.module('adminApp', [
         'dfAccessManagement',
         'dfUserManagement'
     ])
-    .constant('DSP_URL', 'https://dsp-movie.cloud.dreamfactory.com')
+    .constant('DSP_URL', 'https://dsp-mnmandato.cloud.dreamfactory.com')
     //.constant('DSP_URL', 'https://next.cloud.dreamfactory.com')
     //.constant('DSP_URL', 'http://localhost:8081')
 

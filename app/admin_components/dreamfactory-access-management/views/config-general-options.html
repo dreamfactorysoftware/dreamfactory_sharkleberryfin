@@ -1,0 +1,19 @@
+<div class="well sm-well">
+    <div class="row">
+
+        <h3>{{stringService.sectionTitle}}</h3>
+        <hr>
+
+        <!-- Number of records to retrieve -->
+        <div class="form-group">
+            <label for="recordsLimitField">{{stringService.recordsLimit}}</label>
+            <input id="recordsLimitField" class="form-control" type="number" data-ng-model="rs.recordsLimit">
+        </div>
+
+        <!-- Number of records to show per page -->
+        <div class="form-group">
+            <label for="recordsPerPage">{{stringService.recordsPerPage}}</label>
+            <input id="recordsPerPage" class="form-control" type="text" data-ng-model="rs.recordsPerPage">
+        </div>
+    </div>
+</div>

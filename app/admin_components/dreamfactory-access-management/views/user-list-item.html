@@ -1,0 +1,37 @@
+<!-- List Style User Display -->
+<div class="col-xs-12">
+    <div class="row record" data-ng-class="user.dfUIUnsaved ? 'record-warning' : ''">
+        <div class="col-xs-2 col-sm-2 col-md-2 col-lg-1 rounded-left record-id" data-ng-click="selectUser()" data-ng-model="user.dfUISelected"
+             data-ng-class="user.dfUISelected ? 'record-id-selected' : ''"
+             style="text-align: center; padding-top: 8px; padding-bottom: 8px;">
+            <span style="font-size: 24px; font-weight: bold;">{{user.id}}</span>
+            <br>
+            <span class="small">User Id</span>
+        </div>
+        <div class="col-xs-10 col-sm-10 col-md-10 col-lg-11 rounded-right"
+             data-ng-class="user.dfUISelected ? 'record-selected' : ''"
+             data-ng-click="openUserRecord(user)" style="padding-top: 5px; padding-bottom: 5px;">
+            <div class="col-xs-12 col-sm-6 col-md-4 col-lg-3">
+                <p style="margin-bottom: 3px; margin-top: 7px;"><span class="text-muted small">Email: </span></p>
+
+                <p><span>{{user.email}}</span></p>
+            </div>
+            <div class="col-md-4 col-lg-3 col-sm-6 hidden-xs">
+                <p style="margin-bottom: 3px; margin-top: 7px;"><span class="text-muted small">Display Name: </span>
+                </p>
+
+                <p><span>{{user.display_name}}</span></p>
+            </div>
+            <div class="col-md-4 col-lg-3 hidden-sm hidden-xs">
+                <p style="margin-bottom: 3px; margin-top: 7px;"><span class="text-muted small">Active: </span></p>
+
+                <p><span>{{user.is_active}}</span></p>
+            </div>
+            <div class="col-lg-3 hidden-md hidden-sm hidden-xs">
+                <p style="margin-bottom: 3px; margin-top: 7px;"><span class="text-muted small">Created: </span></p>
+
+                <p><span>{{user.created_date}}</span></p>
+            </div>
+        </div>
+    </div>
+</div>

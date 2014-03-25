@@ -337,8 +337,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         });
 
 
-                        console.log(idsForRemoval);
-
                         // Short Circuit: Nothing to delete.
                         if (idsForRemoval.length === 0) {
                             throw 'AccessManagement Users Error: No users selected for removal.'
@@ -427,9 +425,9 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                             last_name: null,
                             email: null,
                             phone: null,
-                            confirmed: true,
-                            is_active: true,
-                            is_sys_admin: true,
+                            confirmed: false,
+                            is_active: false,
+                            is_sys_admin: false,
                             role_id: null,
                             default_app_id: null,
                             user_source: 0,
@@ -574,7 +572,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     scope.$on(accessManagementEventsService.userEvents.closeUserSuccess, function (e) {
 
                         scope.topLevelNavigation = true;
-                        scope.$broadcast(accessManagementEventsService.userEvents.closeUserSingle);
+                        //scope.$broadcast(accessManagementEventsService.userEvents.closeUserSingle);
                     });
 
                     scope.$on(accessManagementEventsService.userEvents.removeUserSuccess, function (e, userDataObj) {
@@ -591,6 +589,11 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                         scope._addUIProperties(userDataObj);
                         scope._addUser(userDataObj);
+                    });
+
+                    scope.$on(accessManagementEventsService.userEvents.revertUserSuccess, function (e, userDataObj) {
+
+
                     });
 
 
@@ -924,6 +927,544 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 }
             }
         }])
+    .directive('configMaster', ['MODAUTH_ASSET_PATH', 'accessManagementRulesService', function(MODAUTH_ASSET_PATH, accessManagementRulesService) {
+
+        return {
+
+            restrict: 'E',
+            templateUrl: MODAUTH_ASSET_PATH + 'views/config-master.html',
+            link: function(scope, elem, attrs) {
+
+
+                // Create short names
+                scope.rs = accessManagementRulesService;
+
+
+
+                scope.active = false;
+                scope.id = 'config';
+                scope.topLevelNavigation = true;
+
+
+
+                // HANDLE MESSAGES
+                scope.$on('view:change:view', function (e, viewIdStr) {
+
+                    if (viewIdStr === scope.id) {
+                        scope.active = true;
+                        scope.$emit('view:changed', scope.id);
+                    } else {
+                        scope.active = false;
+                    }
+                });
+            }
+        }
+    }])
+    .directive('usersList', ['MODAUTH_ASSET_PATH', 'accessManagementEventsService',
+        function(MODAUTH_ASSET_PATH, accessManagementEventsService) {
+
+            return {
+                restrict: 'E',
+                templateUrl: MODAUTH_ASSET_PATH + 'views/users-list.html',
+                scope: true,
+                link: function(scope, elem, attrs) {
+
+                    scope.usersListActive = true;
+                    scope.userDetailActive = false;
+                    scope.selectedUser = null;
+
+
+                    //PUBLIC API
+                    scope.openUserRecord = function (userDataObj) {
+
+                        scope._openUserRecord(userDataObj);
+                    };
+
+
+
+                    // PRIVATE API
+                    scope._hideUsersList = function () {
+
+                        scope.usersListActive = false;
+                    };
+
+                    scope._showUsersList = function () {
+
+                        scope.usersListActive = true
+                    };
+
+                    scope._hideUserDetail = function () {
+
+                        scope.userDetailActive = false
+                    };
+
+                    scope._showUserDetail = function () {
+
+                        scope.userDetailActive = true;
+                    };
+
+                    scope._toggleListActive = function () {
+
+                        scope._hideUserDetail();
+                        scope._showUsersList()
+                    };
+
+                    scope._toggleDetailActive = function () {
+
+                        scope._hideUsersList();
+                        scope._showUserDetail();
+                    };
+
+                    scope._setSelectedUser = function (userDataObj) {
+
+                        scope.selectedUser = userDataObj
+                    };
+
+
+
+                    // COMPLEX IMPLEMENTATION
+                    scope._openUserRecord = function (userDataObj) {
+
+                        scope._toggleDetailActive();
+                        scope._setSelectedUser(userDataObj);
+                    };
+
+                    scope._closeUserRecord = function () {
+
+                        scope._toggleListActive();
+                    };
+
+
+
+                    // HANDLE EVENTS
+                    scope.$on(accessManagementEventsService.userEvents.closeUser, function (e) {
+
+                        scope._closeUserRecord();
+                    });
+
+
+                }
+            }
+    }])
+    .directive('userListItem', ['MODAUTH_ASSET_PATH', function(MODAUTH_ASSET_LIST) {
+        return {
+            restrict: 'E',
+            templateUrl: MODAUTH_ASSET_LIST + 'views/user-list-item.html',
+            scope: true
+        }
+    }])
+    .directive('userItemDetail', ['MODAUTH_ASSET_PATH', 'accessManagementEventsService', 'accessManagementRulesService', '$q', 'DreamFactory',
+        function(MODAUTH_ASSET_PATH, accessManagementEventsService, accessManagementRulesService, $q, DreamFactory) {
+
+
+            // TODO: Add events listeners to act on multiple records
+
+            return {
+                restrict: 'E',
+                templateUrl: MODAUTH_ASSET_PATH + 'views/user-item-detail.html',
+                scope: {
+                    user: '='
+                },
+                link: function(scope, elem, attrs) {
+
+
+                    /**
+                     * Short name for accessManagementEventsService.recordEvents
+                     * @type {service}
+                     */
+                    scope.es = accessManagementEventsService.userEvents;
+
+                    /**
+                     * Stores a copy of the role for the revert function
+                     * @type {object}
+                     */
+                    scope.userCopy = {};
+
+                    /**
+                     * Store the form name
+                     * @type {string}
+                     */
+                    scope.formName = 'user-edit';
+
+
+
+
+                    // PUBLIC API
+                    /*
+                     The Public Api section is meant to interact with the template.
+                     Each function calls it's private complement to actually do the work.
+                     It's a little bit more overhead but we get a few things out of it.
+                     1. We have a clean interface with an underlying implementation that can be changed easily
+                     2. We can setup hooks for pre and post processing if we choose to.
+                     */
+
+
+                    /**
+                     * Interface for closing a record
+                     */
+                    scope.closeUser = function () {
+
+                        // Call complex implementation
+                        scope._closeUser();
+                    };
+
+                    /**
+                     * Interface for saving a record
+                     */
+                    scope.saveUser = function () {
+
+                        // Call complex implementation
+                        scope._saveUser();
+                    };
+
+                    /**
+                     * Interface for removing a record
+                     */
+                    scope.removeUser = function () {
+
+                        // Call complex implementation
+                        scope._confirmRemoveUser() ? scope._removeUser() : false;
+                    };
+
+                    /**
+                     * Interface for reverting a record
+                     */
+                    scope.revertUser = function () {
+
+                        // Call complex implementation
+                        scope._revertUser();
+                    };
+
+                    /**
+                     * Interface for selecting a record
+                     */
+                    scope.selectUser = function () {
+
+                        // Call complex implementation
+                        scope._selectUser();
+                    };
+
+
+
+                    // PRIVATE API
+                    /*
+                     The Private Api is where we create small targeted functions to be used in the Complex
+                     Implementations section
+                     */
+
+                    /**
+                     * Creates a request object to pass to DreamFactory SDK functions
+                     *
+                     * @param requestDataObj
+                     * @param fieldsDataStr
+                     * @param relatedDataStr
+                     * @returns {{id: (null|creds.id|test.id|id|internals.credentials.dh37fgj492je.id|locals.id|*), body: *, fields: (fields|*|null), related: (*|null)}}
+                     * @private
+                     */
+                    scope._makeRequest = function (requestDataObj, fieldsDataStr, relatedDataStr) {
+
+                        var fields = fields || null,
+                            related = related || null;
+
+
+                        return {
+                            id: requestDataObj.id,
+                            body: requestDataObj,
+                            fields: fields,
+                            related: related
+                        }
+                    };
+
+                    /**
+                     * Wrapper for DreamFactory SDK updateUser function
+                     *
+                     * @param userDataObj
+                     * @returns {promise|Promise.promise|exports.promise|Q.promise}
+                     * @private
+                     */
+                    scope._saveUserToSystem = function (userDataObj) {
+
+                        var defer = $q.defer();
+
+                        DreamFactory.api.system.updateUser(
+                            scope._makeRequest(userDataObj, '*'),
+                            function (data) {
+
+                                defer.resolve(data);
+                            },
+                            function (error) {
+
+                                defer.reject(error);
+                            }
+                        );
+
+                        return defer.promise;
+                    };
+
+                    /**
+                     * Wrapper for DreamFactory SDK deleteUser function
+                     *
+                     * @param userDataObj
+                     * @returns {promise|Promise.promise|exports.promise|Q.promise}
+                     * @private
+                     */
+                    scope._removeUserFromSystem = function (userDataObj) {
+
+                        var defer = $q.defer();
+
+                        DreamFactory.api.system.deleteUser(
+                            scope._makeRequest(userDataObj, '*'),
+                            function (data) {
+
+                                defer.resolve(data);
+                            },
+                            function (error) {
+
+                                defer.reject(error);
+                            }
+                        );
+
+                        return defer.promise;
+
+                    };
+
+                    /**
+                     * Get config auto close value
+                     *
+                     * @returns {boolean}
+                     * @private
+                     */
+                    scope._checkAutoClose = function () {
+
+                        return accessManagementRulesService.autoCloseUserDetail;
+                    };
+
+                    /**
+                     * Check for unsaved changes.
+                     * Sets scope.role.dfUIUnsaved
+                     *
+                     * @private
+                     */
+                    scope._checkUnsavedChanges = function () {
+
+                        if (scope[scope.formName].$dirty) {
+
+                            scope.user.dfUIUnsaved = true;
+                            scope.user['userCopy'] = scope._copyUser(scope.userCopy);
+                        } else {
+
+                            scope.user.dfUIUnsaved = false;
+                            if (scope.user['userCopy']) {
+                                delete scope.user.userCopy;
+                            }
+                        }
+                    };
+
+                    /**
+                     * Create an angular copy
+                     *
+                     * @param userDataObj
+                     * @returns {userDataObj}
+                     * @private
+                     */
+                    scope._copyUser = function (userDataObj) {
+
+                        return angular.copy(userDataObj);
+                    };
+
+                    /**
+                     * Set the edit user form to a pristine state
+                     * @private
+                     */
+                    scope._setFormPristine = function () {
+
+                        scope[scope.formName].$setPristine();
+                    };
+
+                    /**
+                     * Set the edit user form to a dirty state
+                     * @private
+                     */
+                    scope._setFormDirty = function () {
+
+                        scope[scope.formName].$setDirty();
+                    };
+
+                    /**
+                     * Set form state based on user saved status
+                     * @param userDataObj
+                     * @private
+                     */
+                    scope._setFormState = function (userDataObj) {
+
+                        userDataObj.dfUIUnsaved ? scope._setFormDirty() : scope._setFormPristine();
+                    };
+
+                    /**
+                     * Sets the local scope.user and scope.userCopy to null
+                     * @private
+                     */
+                    scope._setLocalUserNull = function () {
+
+                        // Set the current user to null this way if we select the
+                        // same user again it will trigger the watcher
+                        scope.user = null;
+
+                        // Set the current user copy to null
+                        scope.userCopy = null;
+                    };
+
+                    /**
+                     * Confirm User removal from system
+                     * @returns {bool}
+                     * @private
+                     */
+                    scope._confirmRemoveUser = function () {
+
+                        return confirm('Remove ' + scope.user.display_name + '?');
+                    };
+
+                    /**
+                     * Sets the current user to the most recent copy of itself
+                     *
+                     * @private
+                     */
+                    scope._revertUserData = function () {
+
+                        for(var key in scope.userCopy) {
+                            if (scope.user.hasOwnProperty(key)) {
+                                scope.user[key] = scope.userCopy[key];
+                            }
+                        }
+                    };
+
+                    /**
+                     * Determines what user data to use as copy for reversion
+                     */
+                    scope._setUserCopy = function (userDataObj) {
+
+                        if (userDataObj.userCopy) {
+                            scope.userCopy = scope._copyUser(userDataObj.userCopy);
+                        }else {
+                            scope.userCopy = scope._copyUser(userDataObj);
+                        }
+                    };
+
+
+
+
+                    // COMPLEX IMPLEMENTATION
+
+                    /**
+                     * Some init for the open record
+                     *
+                     * @emit closeUserSucess
+                     * @private
+                     */
+                    scope._openUser = function (userDataObj) {
+
+                        scope._setFormState(userDataObj);
+                        scope._setUserCopy(userDataObj);
+                    };
+
+
+                    /**
+                     * Closes record
+                     *
+                     * @emit closeUserSucess
+                     * @private
+                     */
+                    scope._closeUser = function () {
+
+                        // Check for unsaved changes on the model
+                        scope._checkUnsavedChanges();
+
+                        // Set the form clean for the next user
+                        scope._setFormPristine();
+
+                        // Reset the local user
+                        scope._setLocalUserNull();
+
+                        // Alert our parent to the fact that we're done with our
+                        // closing routine
+                        scope.$emit(scope.es.closeUser);
+                    };
+
+                    /**
+                     * Saves the User record
+                     *
+                     * @throws AccessManagement User Error
+                     * @private
+                     */
+                    scope._saveUser = function () {
+
+                        scope._saveUserToSystem(scope.user).then(
+                            function (result) {
+
+                                scope[scope.formName].$setPristine();
+                                scope.user = result;
+                                scope.userCopy = scope._copyUser(result);
+
+                                if (scope._checkAutoClose()) {
+                                    scope.closeUser();
+                                }
+
+                                scope.$emit(scope.es.saveUserSuccess, result);
+                            },
+                            function (reject) {
+                                console.log(reject);
+                                throw 'Save User Failed'
+                            }
+                        );
+                    };
+
+                    /**
+                     * Removes record
+                     *
+                     * @throws AccessManagement User Error
+                     * @private
+                     */
+                    scope._removeUser = function () {
+
+                        scope._removeUserFromSystem(scope.user).then(
+                            function (result) {
+                                scope.$emit(scope.es.removeUserSuccess, result);
+                                scope.closeUser();
+                            },
+                            function (reject) {
+                                console.log(reject);
+                                throw 'Remove User Failed'
+                            }
+                        );
+                    };
+
+                    /**
+                     * Reverts record to first loaded or most recent saved state
+                     *
+                     * @private
+                     */
+                    scope._revertUser = function () {
+
+                        scope._revertUserData();
+                        scope[scope.formName].$setPristine();
+                        scope._checkUnsavedChanges();
+                        scope.$emit(scope.es.revertUserSuccess, scope.user);
+                    };
+
+
+
+
+                    // WATCHERS AND INIT
+                    scope.$watch('user', function(newValue, oldValue) {
+
+                        if (newValue) {
+                            scope._openUser(newValue);
+                        }
+                    });
+
+                }
+            }
+    }])
 /**
  *
  * Creates a user display object with a list and edit mode.
@@ -1136,8 +1677,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                      */
                     scope._checkAutoClose = function () {
 
-                        return !!accessManagementRulesService.autoCloseUserDetail;
-
+                        return accessManagementRulesService.autoCloseUserDetail;
                     };
 
                     /**
@@ -1158,8 +1698,8 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     /**
                      * Create an angular copy
                      *
-                     * @param roleDataObj
-                     * @returns {roleDataObj}
+                     * @param userDataObj
+                     * @returns {userDataObj}
                      * @private
                      */
                     scope._copyUser = function (userDataObj) {
@@ -1235,7 +1775,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                                 scope['user-edit-' + scope.user.id].$setPristine();
                                 scope._checkUnsavedChanges();
                                 scope.user = result;
-                                scope.userCopy = result;
+                                scope.userCopy = scope._copyUser(result);
 
                                 if (scope._checkAutoClose()) {
                                     scope.closeUser();
@@ -1271,7 +1811,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     }
 
                     /**
-                     * Reverts record to load or most recent saved state
+                     * Reverts record to first loaded or most recent saved state
                      *
                      * @private
                      */
@@ -1606,7 +2146,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                      */
                     scope._checkAutoClose = function () {
 
-                        return accessManagementRulesService.autoCloseUserDetail;
+                        return accessManagementRulesService.autoCloseRoleDetail;
 
                     };
 
@@ -1738,10 +2278,13 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                                     // we should
                                     scope.closeRole();
-                                }
+                                };
 
-                                // Let the parents know we were successful
+                                // Let the parents know we were successful and don't pass the user
                                 scope.$emit(scope.es.saveRoleSuccess, result);
+
+
+
                             },
 
                             // Error
@@ -2402,6 +2945,68 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 }
             }
         }])
+    .directive('configUsersOptions', ['MODAUTH_ASSET_PATH', 'stringService', function(MODAUTH_ASSET_PATH, stringService) {
+
+        return {
+
+            restrict: 'E',
+            scope: true,
+            templateUrl: MODAUTH_ASSET_PATH + 'views/config-users-options.html',
+            link: function(scope, elem, attrs) {
+
+
+                // Create Short Name
+                // TODO: Add root locale chooser and use that value here
+                scope.stringService = stringService.config.usersConfig.en;
+
+
+                // TODO: Add save function for Users options
+
+            }
+        }
+    }])
+    .directive('configRolesOptions', ['MODAUTH_ASSET_PATH', 'stringService', function(MODAUTH_ASSET_PATH, stringService) {
+
+        return {
+
+            restrict: 'E',
+            scope: true,
+            templateUrl: MODAUTH_ASSET_PATH + 'views/config-roles-options.html',
+            link: function(scope, elem, attrs) {
+
+
+                // Create Short Name
+                // TODO: Add root locale chooser and use that value here
+                scope.stringService = stringService.config.rolesConfig.en;
+
+
+                // TODO: Add save function for Roles options
+
+            }
+        }
+    }])
+    .directive('configGeneralOptions', ['MODAUTH_ASSET_PATH', 'stringService',
+        function (MODAUTH_ASSET_PATH, stringService) {
+
+
+            return {
+                restrict: 'E',
+                templateUrl: MODAUTH_ASSET_PATH + 'views/config-general-options.html',
+                scope: true,
+                link: function(scope, elem, attrs) {
+
+                    // Create Short Name
+                    scope.stringService = stringService.config.generalConfig.en;
+
+
+
+
+
+
+
+                }
+            }
+    }])
     .service('accessManagementEventsService', [function () {
 
         return {
@@ -2448,6 +3053,10 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 createRoleError: 'create:role:error'
             },
             userEvents: {
+
+                closeUser: 'close:user',
+
+
                 openUserSingle: 'open:user:single',
                 closeUserSingle: 'close:user:single',
                 openUser: 'open:user',
@@ -2455,7 +3064,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 revertUser: 'revert:user',
                 selectUser: 'select:user',
                 saveUser: 'save:user',
-                closeUser: 'close:user',
                 createUser: 'create:user',
                 openUserSuccess: 'open:user:success',
                 closeUserSuccess: 'close:user:success',
@@ -2501,11 +3109,43 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
         return {
             allowMassAdminUserDeletion: false,
-            allowMassRoleDeletion: true,
-            allowMassGroupDeletion: true,
-            recordsLimit: 100,
+            viewUsersAsTable: false,
+            viewRolesAsTable: false,
+            recordsLimit: null,
             recordsPerPage: 20,
-            autoCloseUserDetail: true
+            autoCloseUserDetail: true,
+            autoCloseRoleDetail: true
+        }
+    }])
+    .service('stringService', [function() {
+
+        return {
+
+            config: {
+                generalConfig: {
+                    en: {
+                        sectionTitle: 'General Options',
+                        recordsLimit: 'Number of records to retrieve',
+                        recordsPerPage: 'Number of records to show per page'
+                    }
+                },
+                usersConfig: {
+                    en: {
+                        sectionTitle: 'Users Options',
+                        allowMassAdminDelete: 'Allow administrators to be mass deleted.',
+                        autoCloseUserDetail: 'Auto close user detail on save.',
+                        viewUsersAsTable: 'View Users as table.'
+                    }
+                },
+
+                rolesConfig: {
+                    en: {
+                        sectionTitle: 'Roles Options',
+                        autoCloseRoleDetail: 'Auto close user detail on save.',
+                        viewRolesAsTable: 'View Roles as table.'
+                    }
+                }
+            }
         }
     }])
     .filter('orderObjectBy', [function () {
