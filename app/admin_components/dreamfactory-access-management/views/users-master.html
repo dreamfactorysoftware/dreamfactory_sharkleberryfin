@@ -52,9 +52,15 @@
 
     <div class="row">
         <div class="col-xs-12">
-            <create-user></create-user>
-            <users-list></users-list>
-            <!-- <edit-user user="user" data-ng-repeat="user in users"></edit-user> -->
+            <div data-ng-show="viewCreateUserActive">
+
+                <!-- **Isolate Scope** have to pass in roles -->
+                <create-user user="newUser" roles="roles"></create-user>
+            </div>
+            <div  data-ng-show="viewUsersListActive">
+
+                <users-list></users-list>
+            </div>
         </div>
     </div>
 </div>
