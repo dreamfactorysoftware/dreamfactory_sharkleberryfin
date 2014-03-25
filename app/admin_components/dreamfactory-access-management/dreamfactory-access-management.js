@@ -517,9 +517,29 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         );
                     };
 
-                    scope._revertAllUsers = function () {
+                    scope._revertAllUsers = function (usersDataArr) {
 
-                        scope.$broadcast(accessManagementEventsService.userEvents.revertUser)
+                        usersDataArr = usersDataArr || scope.users;
+
+                        angular.forEach(usersDataArr, function(obj) {
+
+                            if (obj.dfUIUnsaved && obj.userCopy) {
+
+                                var userCopy = obj.userCopy;
+
+                                for (var key in obj) {
+                                    if(obj.hasOwnProperty(key)) {
+                                        obj[key] = userCopy[key]
+                                    }
+                                }
+                            }
+
+                            if (obj.dfUIUnsaved) {
+                                obj.dfUIUnsaved = false;
+                            }
+
+                            delete obj.userCopy;
+                        });
                     };
 
                     scope._createUser = function () {
@@ -553,6 +573,8 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         }
                     });
 
+
+                    // handle events broadcasted from parent
                     scope.$on(scope.es.saveUsers, function (e, usersDataObj) {
 
                         scope._saveUsers(usersDataObj);
@@ -563,16 +585,17 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         scope._removeUsers(usersDataArr);
                     });
 
-                    scope.$on(accessManagementEventsService.userEvents.openUserSuccess, function (e, userDataObj) {
+
+
+                    // Handle events emitted from children
+                    scope.$on(accessManagementEventsService.userEvents.openUserSuccess, function (e) {
 
                         scope.topLevelNavigation = false;
-                        scope.$broadcast(accessManagementEventsService.userEvents.openUserSingle, userDataObj);
                     });
 
                     scope.$on(accessManagementEventsService.userEvents.closeUserSuccess, function (e) {
 
                         scope.topLevelNavigation = true;
-                        //scope.$broadcast(accessManagementEventsService.userEvents.closeUserSingle);
                     });
 
                     scope.$on(accessManagementEventsService.userEvents.removeUserSuccess, function (e, userDataObj) {
@@ -1037,7 +1060,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     // HANDLE EVENTS
-                    scope.$on(accessManagementEventsService.userEvents.closeUser, function (e) {
+                    scope.$on(accessManagementEventsService.userEvents.closeUserSuccess, function (e) {
 
                         scope._closeUserRecord();
                     });
@@ -1099,9 +1122,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
     }])
     .directive('userItemDetail', ['MODAUTH_ASSET_PATH', 'accessManagementEventsService', 'accessManagementRulesService', '$q', 'DreamFactory',
         function(MODAUTH_ASSET_PATH, accessManagementEventsService, accessManagementRulesService, $q, DreamFactory) {
-
-
-            // TODO: Add events listeners to act on multiple records
 
             return {
                 restrict: 'E',
@@ -1400,6 +1420,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                         scope._setFormState(userDataObj);
                         scope._setUserCopy(userDataObj);
+                        scope.$emit(scope.es.openUserSuccess);
                     };
 
 
@@ -1422,7 +1443,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                         // Alert our parent to the fact that we're done with our
                         // closing routine
-                        scope.$emit(scope.es.closeUser);
+                        scope.$emit(scope.es.closeUserSuccess);
                     };
 
                     /**
@@ -1488,8 +1509,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
 
-
-
                     // WATCHERS AND INIT
                     scope.$watch('user', function(newValue, oldValue) {
 
@@ -1501,439 +1520,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 }
             }
     }])
-/**
- *
- * Creates a user display object with a list and edit mode.
- *
- * @constant MODAUTH_ASSET_PATH
- * @service accessMangementEventsService
- * @service accessManagementRulesService
- * @service $q
- * @service DreamFactory
- */
-    .directive('editUser', ['$q', 'MODAUTH_ASSET_PATH', 'accessManagementEventsService', 'accessManagementRulesService', 'DreamFactory',
-        function ($q, MODAUTH_ASSET_PATH, accessManagementEventsService, accessManagementRulesService, DreamFactory) {
-            return {
-                restrict: 'E',
-                templateUrl: MODAUTH_ASSET_PATH + 'views/edit-user.html',
-                scope: true,
-                link: function (scope, elem, attrs) {
-
-                    /**
-                     * Short name for accessManagementEventsService.recordEvents
-                     * @type {service}
-                     */
-                    scope.es = accessManagementEventsService.userEvents;
-
-                    /**
-                     * Toggles view active in template
-                     * @type {boolean}
-                     */
-                    scope.active = false;
-
-                    /**
-                     * Toggles view hidden when another role is active
-                     * @type {boolean}
-                     */
-                    scope.singleUserActive = false;
-
-                    /**
-                     * Stores a copy of the role for the revert function
-                     * @type {object}
-                     */
-                    scope.userCopy = {};
-
-                    /**
-                     * Store the form name
-                     * @type {string}
-                     */
-                    scope.formName = 'user-edit-' + scope.user.id;
-
-
-                    /**
-                     * Copies the user for revert
-                     */
-                    scope.init = function () {
-
-                        scope.userCopy = scope._copyUser(scope.user);
-                    };
-
-
-                    // PUBLIC API
-                    /*
-                     The Public Api section is meant to interact with the template.
-                     Each function calls it's private complement to actually do the work.
-                     It's a little bit more overhead but we get a few things out of it.
-                     1. We have a clean interface with an underlying implementation that can be changed easily
-                     2. We can setup hooks for pre and post processing if we choose to.
-                     */
-
-                    /**
-                     * Interface for opening a record
-                     */
-                    scope.openUser = function () {
-
-                        // Call complex implementation
-                        scope._openUser();
-                    };
-
-                    /**
-                     * Interface for closing a record
-                     */
-                    scope.closeUser = function () {
-
-                        // Call complex implementation
-                        scope._closeUser();
-                    };
-
-                    /**
-                     * Interface for saving a record
-                     */
-                    scope.saveUser = function () {
-
-                        // Call complex implementation
-                        scope._saveUser();
-                    };
-
-                    /**
-                     * Interface for removing a record
-                     */
-                    scope.removeUser = function () {
-
-                        // Call complex implementation
-                        scope._removeUser();
-                    };
-
-                    /**
-                     * Interface for reverting a record
-                     */
-                    scope.revertUser = function () {
-
-                        // Call complex implementation
-                        scope._revertUser();
-                    };
-
-                    /**
-                     * Interface for selecting a record
-                     */
-                    scope.selectUser = function () {
-
-                        // Call complex implementation
-                        scope._selectUser();
-                    };
-
-
-                    // PRIVATE API
-                    /*
-                     The Private Api is where we create small targeted functions to be used in the Complex
-                     Implementations section
-                     */
-
-                    /**
-                     * Creates a request object to pass to DreamFactory SDK functions
-                     *
-                     * @param requestDataObj
-                     * @param fieldsDataStr
-                     * @param relatedDataStr
-                     * @returns {{id: (null|creds.id|test.id|id|internals.credentials.dh37fgj492je.id|locals.id|*), body: *, fields: (fields|*|null), related: (*|null)}}
-                     * @private
-                     */
-                    scope._makeRequest = function (requestDataObj, fieldsDataStr, relatedDataStr) {
-
-                        var fields = fields || null,
-                            related = related || null;
-
-
-                        return {
-                            id: requestDataObj.id,
-                            body: requestDataObj,
-                            fields: fields,
-                            related: related
-                        }
-                    };
-
-                    /**
-                     * Wrapper for DreamFactory SDK function
-                     *
-                     * @param userDataObj
-                     * @returns {promise|Promise.promise|exports.promise|Q.promise}
-                     * @private
-                     */
-                    scope._saveUserToSystem = function (userDataObj) {
-
-                        var defer = $q.defer();
-
-                        DreamFactory.api.system.updateUser(
-                            scope._makeRequest(userDataObj, '*'),
-                            function (data) {
-
-                                defer.resolve(data);
-                            },
-                            function (error) {
-
-                                defer.reject(error);
-                            }
-                        );
-
-                        return defer.promise;
-                    };
-
-                    /**
-                     * Wrapper for DreamFactory SDK function
-                     *
-                     * @param userDataObj
-                     * @returns {promise|Promise.promise|exports.promise|Q.promise}
-                     * @private
-                     */
-                    scope._removeUserFromSystem = function (userDataObj) {
-
-                        var defer = $q.defer();
-
-                        DreamFactory.api.system.deleteUser(
-                            scope._makeRequest(userDataObj, '*'),
-                            function (data) {
-
-                                defer.resolve(data);
-                            },
-                            function (error) {
-
-                                defer.reject(error);
-                            }
-                        );
-
-                        return defer.promise;
-
-                    };
-
-                    /**
-                     * Get config auto close value
-                     *
-                     * @returns {boolean}
-                     * @private
-                     */
-                    scope._checkAutoClose = function () {
-
-                        return accessManagementRulesService.autoCloseUserDetail;
-                    };
-
-                    /**
-                     * Check for unsaved changes.
-                     * Sets scope.role.dfUIUnsaved
-                     *
-                     * @private
-                     */
-                    scope._checkUnsavedChanges = function () {
-
-                        if (scope['user-edit-' + scope.user.id].$dirty) {
-                            scope.user.dfUIUnsaved = true;
-                        } else {
-                            scope.user.dfUIUnsaved = false;
-                        }
-                    };
-
-                    /**
-                     * Create an angular copy
-                     *
-                     * @param userDataObj
-                     * @returns {userDataObj}
-                     * @private
-                     */
-                    scope._copyUser = function (userDataObj) {
-
-                        return angular.copy(userDataObj);
-                    };
-
-                    /**
-                     * Sets the current user to the most recent copy of itself
-                     *
-                     * @private
-                     */
-                    scope._revertUserData = function () {
-
-                        scope.user = scope._copyUser(scope.userCopy);
-                    };
-
-                    /**
-                     * Toggle dfUISelected property on scope.user
-                     *
-                     * @private
-                     */
-                    scope._setUserSelected = function () {
-
-                        scope.user.dfUISelected = !scope.user.dfUISelected;
-                    };
-
-
-                    // COMPLEX IMPLEMENTATION
-                    /*
-                     The Complex Implementation section is where almost all of the heavy lifting
-                     is done.  When the user requests an action through the Public Api...these
-                     functions are the counterparts that make it happen.  For the most part we
-                     try to use our Private Api to perform most of the functions.  However, sometimes
-                     it just doesn't make sense to have a function set a value for us.
-                     */
-
-                    /**
-                     * Sets active property to true.
-                     *
-                     * @emit openUserSuccess
-                     * @emitData scope.user
-                     * @private
-                     */
-                    scope._openUser = function () {
-
-                        scope.active = true;
-                        scope.$emit(scope.es.openUserSuccess, scope.user);
-                    };
-
-                    /**
-                     * Closes record
-                     *
-                     * @emit closeUserSucess
-                     * @private
-                     */
-                    scope._closeUser = function () {
-
-                        scope.$emit(scope.es.closeUserSuccess);
-                    };
-
-                    /**
-                     * Saves the User record
-                     *
-                     * @throws AccessManagement User Error
-                     * @private
-                     */
-                    scope._saveUser = function () {
-
-                        scope._saveUserToSystem(scope.user).then(
-                            function (result) {
-
-                                scope['user-edit-' + scope.user.id].$setPristine();
-                                scope._checkUnsavedChanges();
-                                scope.user = result;
-                                scope.userCopy = scope._copyUser(result);
-
-                                if (scope._checkAutoClose()) {
-                                    scope.closeUser();
-                                }
-
-                                scope.$emit(scope.es.saveUserSuccess, result);
-                            },
-                            function (reject) {
-                                console.log(reject);
-                                throw 'Save User Failed'
-                            }
-                        );
-                    };
-
-                    /**
-                     * Removes record
-                     *
-                     * @throws AccessManagement User Error
-                     * @private
-                     */
-                    scope._removeUser = function () {
-
-                        scope._removeUserFromSystem(scope.user).then(
-                            function (result) {
-                                scope.$emit(scope.es.removeUserSuccess, result);
-                                scope.closeUser();
-                            },
-                            function (reject) {
-                                console.log(reject);
-                            }
-                        );
-
-                    }
-
-                    /**
-                     * Reverts record to first loaded or most recent saved state
-                     *
-                     * @private
-                     */
-                    scope._revertUser = function () {
-
-                        scope._revertUserData();
-                        scope['user-edit-' + scope.user.id].$setPristine();
-                        scope._checkUnsavedChanges();
-                        scope.$emit(scope.es.revertUserSuccess);
-                    };
-
-                    /**
-                     * Selects record
-                     *
-                     * @emit selectUserSuccess
-                     * @private
-                     */
-                    scope._selectUser = function () {
-
-                        scope._setUserSelected();
-                        scope.$emit(scope.es.selectUserSuccess)
-                    };
-
-
-                    // HANDLE MESSAGES
-                    /*
-                     The Handle Messages section does just that.  Here we handle inter-directive
-                     communications.  **NOTE** We store our event names in the accessManagementEventsService
-                     as they will appear in multiple places and if we choose to rename an event for any reason
-                     we will only have to do so in one place.
-                     */
-                    /**
-                     * Checks if this is the record the parent requests opened
-                     */
-                    scope.$on(scope.es.openUserSingle, function (e, userDataObj) {
-
-                        if (userDataObj.id !== scope.user.id) {
-                            scope.singleUserActive = true;
-                        }
-                    });
-
-                    /**
-                     * Closes the record on parent request
-                     */
-                    scope.$on(scope.es.closeUserSingle, function (e) {
-
-                        scope._checkUnsavedChanges();
-                        scope.singleUserActive = false;
-                        scope.active = false;
-                    });
-
-                    /**
-                     * Sets record to saved state on parent request
-                     */
-                    scope.$on(scope.es.saveUser, function (e) {
-
-                        scope.$broadcast(scope.es.saveUser);
-                        scope['user-edit-' + scope.user.id].$setPristine();
-                        scope._checkUnsavedChanges();
-                        scope.userCopy = scope._copyUser(scope.user);
-                    });
-
-                    /**
-                     * Reverts record to previous state on parent request
-                     */
-                    scope.$on(scope.es.revertUser, function(e) {
-
-                        scope.revertUser();
-                    });
-
-                    /**
-                     * Clean up when destroyed
-                     */
-                    scope.$on('$destroy', function () {
-
-                    });
-
-
-                    // INIT AND WATCHERS
-                    /**
-                     * Fire the init function
-                     */
-                    scope.init();
-                }
-            }
-        }])
 /**
  *
  * Creates a role display object with a list and edit mode.
@@ -3091,10 +2677,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
             userEvents: {
 
                 closeUser: 'close:user',
-
-
-                openUserSingle: 'open:user:single',
-                closeUserSingle: 'close:user:single',
                 openUser: 'open:user',
                 removeUser: 'remove:user',
                 revertUser: 'revert:user',
