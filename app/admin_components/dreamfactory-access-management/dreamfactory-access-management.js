@@ -1050,7 +1050,51 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
         return {
             restrict: 'E',
             templateUrl: MODAUTH_ASSET_LIST + 'views/user-list-item.html',
-            scope: true
+            scope: true,
+            link: function(scope, elem, attrs) {
+
+
+                // PUBLIC API
+                /**
+                 * Interface for selecting a record
+                 */
+                scope.selectUser = function () {
+
+                    // Call complex implementation
+                    scope._selectUser();
+                };
+
+
+                // PRIVATE API
+                /**
+                 * Toggle dfUISelected property on scope.user
+                 *
+                 * @private
+                 */
+                scope._setUserSelected = function () {
+
+                    scope.user.dfUISelected = !scope.user.dfUISelected;
+                };
+
+
+                // COMPLEX IMPLEMENTATION
+                /**
+                 * Selects record
+                 *
+                 * @emit selectUserSuccess
+                 * @private
+                 */
+                scope._selectUser = function () {
+
+                    scope._setUserSelected();
+                    scope.$emit(scope.es.selectUserSuccess)
+                };
+
+
+                // WATCHERS AND INIT
+
+
+            }
         }
     }])
     .directive('userItemDetail', ['MODAUTH_ASSET_PATH', 'accessManagementEventsService', 'accessManagementRulesService', '$q', 'DreamFactory',
@@ -1133,15 +1177,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                         // Call complex implementation
                         scope._revertUser();
-                    };
-
-                    /**
-                     * Interface for selecting a record
-                     */
-                    scope.selectUser = function () {
-
-                        // Call complex implementation
-                        scope._selectUser();
                     };
 
 
@@ -1450,6 +1485,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         scope._checkUnsavedChanges();
                         scope.$emit(scope.es.revertUserSuccess, scope.user);
                     };
+
 
 
 
