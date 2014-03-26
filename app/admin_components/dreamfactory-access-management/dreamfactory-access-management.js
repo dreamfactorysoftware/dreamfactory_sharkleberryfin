@@ -84,76 +84,56 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     // PRIVATE API
-                    $scope._hideViewUsersMaster = function () {
+                    $scope._toggleViewUsersMaster = function (stateBool) {
                         
-                        $scope.viewUsersMasterActive = false;
-                    };
-                    
-                    $scope._showViewUsersMaster = function () {
-                        
-                        $scope.viewUsersMasterActive = true;
+                        $scope.viewUsersMasterActive = stateBool;
                     };
 
-                    $scope._hideViewRolesMaster = function () {
+                    $scope._toggleViewRolesMaster = function (stateBool) {
 
-                        $scope.viewRolesMasterActive = false;
+                        $scope.viewRolesMasterActive = stateBool;
                     };
 
-                    $scope._showViewRolesMaster = function () {
+                    $scope._toggleViewAssignMaster = function (stateBool) {
 
-                        $scope.viewRolesMasterActive = true;
+                        $scope.viewAssignMasterActive = stateBool;
                     };
 
-                    $scope._hideViewAssignMaster = function () {
+                    $scope._toggleViewConfigMaster = function (stateBool) {
 
-                        $scope.viewAssignMasterActive = false;
-                    };
-
-                    $scope._showViewAssignMaster = function () {
-
-                        $scope.viewAssignMasterActive = true;
-                    };
-
-                    $scope._hideViewConfigMaster = function () {
-
-                        $scope.viewConfigMasterActive = false;
-                    };
-
-                    $scope._showViewConfigMaster = function () {
-
-                        $scope.viewConfigMasterActive = true;
+                        $scope.viewConfigMasterActive = stateBool;
                     };
 
                     $scope._toggleViewUsersMasterActive = function () {
 
-                        $scope._showViewUsersMaster();
-                        $scope._hideViewRolesMaster();
-                        $scope._hideViewAssignMaster();
-                        $scope._hideViewConfigMaster();
+                        $scope._toggleViewUsersMaster(true);
+                        $scope._toggleViewRolesMaster(false);
+                        $scope._toggleViewAssignMaster(false);
+                        $scope._toggleViewConfigMaster(false);
                     };
 
                     $scope._toggleViewRolesMasterActive = function () {
 
-                        $scope._showViewRolesMaster();
-                        $scope._hideViewUsersMaster();
-                        $scope._hideViewAssignMaster();
-                        $scope._hideViewConfigMaster();
+                        $scope._toggleViewRolesMaster(true);
+                        $scope._toggleViewUsersMaster(false);
+                        $scope._toggleViewAssignMaster(false);
+                        $scope._toggleViewConfigMaster(false);
                     };
 
                     $scope._toggleViewAssignMasterActive = function () {
 
-                        $scope._showViewAssignMaster();
-                        $scope._hideViewUsersMaster();
-                        $scope._hideViewRolesMaster();
-                        $scope._hideViewConfigMaster();
+                        $scope._toggleViewAssignMaster(true);
+                        $scope._toggleViewUsersMaster(false);
+                        $scope._toggleViewRolesMaster(false);
+                        $scope._toggleViewConfigMaster(false);
                     };
 
                     $scope._toggleViewConfigMasterActive = function () {
 
-                        $scope._showViewConfigMaster();
-                        $scope._hideViewUsersMaster();
-                        $scope._hideViewRolesMaster();
-                        $scope._hideViewAssignMaster();
+                        $scope._toggleViewConfigMaster(true);
+                        $scope._toggleViewUsersMaster(false);
+                        $scope._toggleViewRolesMaster(false);
+                        $scope._toggleViewAssignMaster(false);
                     };
 
 
@@ -419,36 +399,26 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     //PRIVATE API
-                    scope._showViewUsersList = function () {
+                    scope._toggleViewUsersList = function (stateBool) {
 
-                        scope.viewUsersListActive = true;
+                        scope.viewUsersListActive = stateBool;
                     };
 
-                    scope._hideViewUsersList = function () {
+                    scope._toggleViewCreateUser = function (stateBool) {
 
-                        scope.viewUsersListActive = false;
-                    };
-
-                    scope._showViewCreateUser = function () {
-
-                        scope.viewCreateUserActive = true;
-                    };
-
-                    scope._hideViewCreateUser = function () {
-
-                        scope.viewCreateUserActive = false;
+                        scope.viewCreateUserActive = stateBool;
                     };
 
                     scope._toggleViewUsersListActive = function () {
 
-                        scope._showViewUsersList();
-                        scope._hideViewCreateUser();
+                        scope._toggleViewUsersList(true);
+                        scope._toggleViewCreateUser(false);
                     };
 
                     scope._toggleViewCreateUsersActive = function () {
 
-                        scope._showViewCreateUser();
-                        scope._hideViewUsersList();
+                        scope._toggleViewCreateUser(true);
+                        scope._toggleViewUsersList(false);
                     };
 
                     scope._removeUsersFromSystem = function (usersDataArr) {
@@ -797,36 +767,27 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     // PRIVATE API
-                    scope._hideUsersList = function () {
+                    scope._toggleUsersList = function (stateBool) {
 
-                        scope.usersListActive = false;
+                        scope.usersListActive = stateBool;
                     };
 
-                    scope._showUsersList = function () {
+                    scope._toggleUserDetail = function (stateBool) {
 
-                        scope.usersListActive = true
-                    };
-
-                    scope._hideUserDetail = function () {
-
-                        scope.userDetailActive = false
-                    };
-
-                    scope._showUserDetail = function () {
-
-                        scope.userDetailActive = true;
+                        scope.userDetailActive = stateBool;
                     };
 
                     scope._toggleListActive = function () {
 
-                        scope._hideUserDetail();
-                        scope._showUsersList()
+                        scope._toggleUsersList(true);
+                        scope._toggleUserDetail(false);
+
                     };
 
                     scope._toggleDetailActive = function () {
 
-                        scope._hideUsersList();
-                        scope._showUserDetail();
+                        scope._toggleUserDetail(true);
+                        scope._toggleUsersList(false)
                     };
 
                     scope._setSelectedUser = function (userDataObj) {
@@ -1441,36 +1402,26 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     // PUBLIC API
-                    scope._showViewRolesList = function () {
+                    scope._toggleViewRolesList = function (stateBool) {
 
-                        scope.viewRolesListActive = true;
+                        scope.viewRolesListActive = stateBool;
                     };
 
-                    scope._hideViewRolesList = function () {
+                    scope._toggleViewCreateRole = function (stateBool) {
 
-                        scope.viewRolesListActive = false;
-                    };
-
-                    scope._showViewCreateRole = function () {
-
-                        scope.viewCreateRoleActive = true;
-                    };
-
-                    scope._hideViewCreateRole = function () {
-
-                        scope.viewCreateRoleActive = false;
+                        scope.viewCreateRoleActive = stateBool;
                     };
 
                     scope._toggleViewRolesListActive = function () {
 
-                        scope._showViewRolesList();
-                        scope._hideViewCreateRole();
+                        scope._toggleViewRolesList(true);
+                        scope._toggleViewCreateRole(false);
                     };
 
                     scope._toggleViewCreateRolesActive = function () {
 
-                        scope._showViewCreateRole();
-                        scope._hideViewRolesList();
+                        scope._toggleViewCreateRole(true);
+                        scope._toggleViewRolesList(false);
                     };
                     
                     scope.openModuleNavigation = function () {
@@ -1814,36 +1765,26 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     // PRIVATE API
-                    scope._hideRolesList = function () {
+                    scope._toggleRolesList = function (stateBool) {
 
-                        scope.rolesListActive = false;
+                        scope.rolesListActive = stateBool;
                     };
 
-                    scope._showRolesList = function () {
+                    scope._toggleRoleDetail = function (stateBool) {
 
-                        scope.rolesListActive = true
-                    };
-
-                    scope._hideRoleDetail = function () {
-
-                        scope.roleDetailActive = false
-                    };
-
-                    scope._showRoleDetail = function () {
-
-                        scope.roleDetailActive = true;
+                        scope.roleDetailActive = stateBool;
                     };
 
                     scope._toggleListActive = function () {
 
-                        scope._hideRoleDetail();
-                        scope._showRolesList()
+                        scope._toggleRolesList(true);
+                        scope._toggleRoleDetail(false);
                     };
 
                     scope._toggleDetailActive = function () {
 
-                        scope._hideRolesList();
-                        scope._showRoleDetail();
+                        scope._toggleRoleDetail(true);
+                        scope._toggleRolesList(false)
                     };
 
                     scope._setSelectedRole = function (roleDataObj) {
