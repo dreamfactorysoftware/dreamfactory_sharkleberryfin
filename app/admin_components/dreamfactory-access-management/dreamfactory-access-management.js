@@ -35,7 +35,11 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 controller: function ($scope) {
 
 
-                    $scope.activeView = 'users';
+                    $scope.viewUsersMasterActive = true;
+                    $scope.viewRolesMasterActive = false;
+                    $scope.viewAssignMasterActive = false;
+                    $scope.viewConfigMasterActive = false;
+                    
                     $scope.toggleModuleNavigationBool = true;
                     $scope.roles = [];
                     $scope.users = [];
@@ -58,14 +62,102 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
 
                     // PUBLIC API
-                    $scope.changeView = function (viewIdStr) {
+                    $scope.openUsersMaster = function () {
 
-                        $scope.$broadcast('view:change:view', viewIdStr);
+                        $scope._openUsersMaster();
+                    };
 
+                    $scope.openRolesMaster = function () {
+
+                        $scope._openRolesMaster();
+                    };
+
+                    $scope.openAssignMaster = function () {
+
+                        $scope._openAssignMaster();
+                    };
+
+                    $scope.openConfigMaster = function () {
+
+                        $scope._openConfigMaster();
                     };
 
 
                     // PRIVATE API
+                    $scope._hideViewUsersMaster = function () {
+                        
+                        $scope.viewUsersMasterActive = false;
+                    };
+                    
+                    $scope._showViewUsersMaster = function () {
+                        
+                        $scope.viewUsersMasterActive = true;
+                    };
+
+                    $scope._hideViewRolesMaster = function () {
+
+                        $scope.viewRolesMasterActive = false;
+                    };
+
+                    $scope._showViewRolesMaster = function () {
+
+                        $scope.viewRolesMasterActive = true;
+                    };
+
+                    $scope._hideViewAssignMaster = function () {
+
+                        $scope.viewAssignMasterActive = false;
+                    };
+
+                    $scope._showViewAssignMaster = function () {
+
+                        $scope.viewAssignMasterActive = true;
+                    };
+
+                    $scope._hideViewConfigMaster = function () {
+
+                        $scope.viewConfigMasterActive = false;
+                    };
+
+                    $scope._showViewConfigMaster = function () {
+
+                        $scope.viewConfigMasterActive = true;
+                    };
+
+                    $scope._toggleViewUsersMasterActive = function () {
+
+                        $scope._showViewUsersMaster();
+                        $scope._hideViewRolesMaster();
+                        $scope._hideViewAssignMaster();
+                        $scope._hideViewConfigMaster();
+                    };
+
+                    $scope._toggleViewRolesMasterActive = function () {
+
+                        $scope._showViewRolesMaster();
+                        $scope._hideViewUsersMaster();
+                        $scope._hideViewAssignMaster();
+                        $scope._hideViewConfigMaster();
+                    };
+
+                    $scope._toggleViewAssignMasterActive = function () {
+
+                        $scope._showViewAssignMaster();
+                        $scope._hideViewUsersMaster();
+                        $scope._hideViewRolesMaster();
+                        $scope._hideViewConfigMaster();
+                    };
+
+                    $scope._toggleViewConfigMasterActive = function () {
+
+                        $scope._showViewConfigMaster();
+                        $scope._hideViewUsersMaster();
+                        $scope._hideViewRolesMaster();
+                        $scope._hideViewAssignMaster();
+                    };
+
+
+
                     $scope._toggleModuleNavigation = function () {
 
                         $scope.toggleModuleNavigationBool = !$scope.toggleModuleNavigationBool;
@@ -200,16 +292,33 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                             });
                     };
 
+                    $scope._openUsersMaster = function () {
+
+                        $scope._toggleViewUsersMasterActive();
+                    };
+
+                    $scope._openRolesMaster = function () {
+
+                        $scope._toggleViewRolesMasterActive();
+                    };
+
+                    $scope._openAssignMaster= function () {
+
+                        $scope._toggleViewAssignMasterActive();
+                    };
+
+                    $scope._openConfigMaster = function () {
+
+                        $scope._toggleViewConfigMasterActive();
+                    };
+
+
+
+
 
                     // HANDLE MESSAGES
                     $scope.$on('api:ready', function (e) {
                         $scope.init();
-                    });
-
-                    $scope.$on('view:changed', function (e, viewIdStr) {
-
-                        $scope.activeView = viewIdStr;
-                        $scope.toggleModuleNavigationBool = true;
                     });
 
                     $scope.$on($scope.es.openModuleNavigation, function (e) {
