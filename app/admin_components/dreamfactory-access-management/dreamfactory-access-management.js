@@ -306,17 +306,17 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         $scope._toggleModuleNavigation();
                     });
 
-                    $scope.$on(accessManagementEventsService.assignMassUsersEvents.assignRole, function (e, usersDataArr) {
+                    $scope.$on(accessManagementEventsService.assignUserRoleEvents.assignRole, function (e, usersDataArr) {
 
                         $scope.$broadcast(accessManagementEventsService.usersEvents.saveUsers, usersDataArr);
                     });
 
-                    $scope.$on(accessManagementEventsService.assignMassUsersEvents.unassignRole, function (e, usersDataArr) {
+                    $scope.$on(accessManagementEventsService.assignUserRoleEvents.unassignRole, function (e, usersDataArr) {
 
                         $scope.$broadcast(accessManagementEventsService.usersEvents.saveUsers, usersDataArr);
                     });
 
-                    $scope.$on(accessManagementEventsService.assignMassUsersEvents.removeRoleUsers, function (e, usersDataArr) {
+                    $scope.$on(accessManagementEventsService.assignUserRoleEvents.removeRoleUsers, function (e, usersDataArr) {
 
                         $scope.$broadcast(accessManagementEventsService.usersEvents.removeUsers, usersDataArr);
                     });
@@ -2451,6 +2451,282 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 }
             }
         }])
+    .directive('assignUserRoleMaster', ['MODAUTH_ASSET_PATH', 'accessManagementEventsService',
+        function (MODAUTH_ASSET_PATH, accessManagementEventsService) {
+
+            return {
+                restrict: 'E',
+                templateUrl: MODAUTH_ASSET_PATH + 'views/assign-user-role-master.html',
+                scope: true,
+                link: function (scope, elem, attrs) {
+
+                    // Create short names
+                    scope.es = accessManagementEventsService.assignUserRoleEvents;
+
+
+                    // PUBLIC VARS
+                    // Stores sorted users that don't have the current role
+                    scope.usersWithOutRole = [];
+
+                    // Stores sorted users that do have the current role
+                    scope.usersWithRole = [];
+
+                    // Stores the current role
+                    scope.currentRole = null;
+
+                    // Stores the current role id
+                    scope.currentRoleId = null;
+
+                    // Stores default options for filters
+                    // as well as provides a model to bind to
+                    // so our filter and our directive that controls
+                    // filter/view options can communicate
+                    scope.filter = {
+                        uaViewBy: 'email',
+                        uaUserProp: 'email',
+                        uaUserValue: null,
+                        uaOrderBy: 'id',
+                        uaOrderByReverse: false,
+                        aViewBy: 'email',
+                        aUserProp: 'email',
+                        aUserValue: null,
+                        aOrderBy: 'id',
+                        aOrderByReverse: false,
+                    };
+
+
+                    // PUBLIC API
+                    // UI Interface
+                    scope.toggleUserSelected = function (userDataObj) {
+
+                        scope._toggleUserSelected(userDataObj);
+                    };
+
+                    scope.assignRole = function () {
+
+                        scope._assignRole();
+                    };
+
+                    scope.unassignRole = function () {
+
+                        scope._unassignRole();
+                    };
+
+
+                    // PRIVATE API
+                    // Sort the users into two groups.  Users that have this
+                    // role and users that don't
+                    scope.__sortUsers = function (users) {
+
+                        // Reset our sorted arrays to empty
+                        scope.__setSortedEmpty();
+
+                        // Foreach user that was passed in
+                        angular.forEach(users, function (obj) {
+
+                            // does the user role id equal the current role id
+                            if (obj.role_id != scope.currentRole.id) {
+
+                                // it doesn't
+                                scope.usersWithOutRole.push(obj);
+                            } else {
+
+                                // it does
+                                scope.usersWithRole.push(obj);
+                            }
+                        })
+                    };
+
+                    // Reset our sort arrays
+                    scope.__setSortedEmpty = function () {
+
+                        scope.usersWithOutRole = [];
+                        scope.usersWithRole = [];
+                    };
+
+                    // Set the role id to the current role on each selected user
+                    // that doesn't have the current role
+                    scope._getSelectedUsersWithOutRole = function () {
+
+                        var selectedUsers = [];
+
+                        angular.forEach(scope.usersWithOutRole, function (obj) {
+
+                            if (obj.dfUISelected) {
+                                obj.dfUIUnsaved = true;
+                                obj.role_id = scope.currentRole.id;
+                                selectedUsers.push(obj);
+                                scope._toggleUserSelectedData(obj);
+
+                            }
+                        });
+
+                        if (selectedUsers.length > 0) {
+                            return selectedUsers;
+                        } else {
+                            throw 'Assign Role Error: No users selected.'
+                        }
+                    };
+
+                    // Set the role id to null/default role on each selected user
+                    // that has the current role
+                    scope._getSelectedUsersWithRole = function () {
+
+                        var selectedUsers = [];
+
+                        angular.forEach(scope.usersWithRole, function (obj) {
+
+                            if (obj.dfUISelected) {
+                                obj.dfUIUnsaved = true;
+                                obj.role_id = null;
+                                selectedUsers.push(obj);
+                                scope._toggleUserSelectedData(obj);
+                            }
+                        });
+
+                        if (selectedUsers.length > 0) {
+                            return selectedUsers;
+                        } else {
+                            throw 'Unassign Role Error: No users selected.'
+                        }
+                    };
+
+                    // Toggle user to be modified
+                    scope._toggleUserSelectedData = function (userDataObj) {
+
+                        userDataObj.dfUISelected = !userDataObj.dfUISelected;
+                        userDataObj.dfUISelected ? scope.totalSelectedUsers++ : scope.totalSelectedUsers--;
+                    };
+
+                    // Check if we have one or more selected users in array
+                    scope._checkForSelectedUsers = function (usersArr) {
+
+                        var haveUsers = false;
+
+                        // Foreach user in array
+                        angular.forEach(usersArr, function(obj) {
+
+                            // are they selected
+                            if (obj.dfUISelected) {
+
+                                // someone is selected
+                                haveUsers =  true;
+                            }
+                        });
+
+                        return haveUsers;
+                    };
+
+                    // Gets current role data
+                    scope._getCurrentRoleData = function (roleId) {
+
+                        var selectedRole = null;
+
+                        angular.forEach(scope.roles, function (obj) {
+
+                            if (obj.id === roleId) {
+
+                                selectedRole = obj;
+                            }
+                        });
+
+                        return selectedRole;
+                    };
+
+                    // Sets currentRole
+                    scope._setCurrentRoleData = function (roleId) {
+
+                        scope.currentRole = scope._getCurrentRoleData(roleId);
+                    };
+
+
+                    // COMPLEX IMPLEMENTATION
+                    // Function to toggle user selected
+                    scope._toggleUserSelected = function (userDataObj) {
+
+                        scope._toggleUserSelectedData(userDataObj);
+                    };
+
+                    // Function to assign the role
+                    scope._assignRole = function () {
+
+                        // check if any users are selected
+                        if (scope._checkForSelectedUsers(scope.usersWithOutRole)) {
+
+                            // Tell the main parent Directive Controller to save the selected users with the current role.
+                            scope.$emit(scope.es.assignRole, scope._getSelectedUsersWithOutRole());
+                        }
+                    };
+
+                    // Function to unassign the role
+                    scope._unassignRole = function () {
+
+                        // check if any users are selected
+                        if (scope._checkForSelectedUsers(scope.usersWithRole)) {
+
+                            // Tell the main parent Directive Controller to save the selected users with the current role removed
+                            scope.$emit(scope.es.unassignRole, scope._getSelectedUsersWithRole())
+                        }
+                    };
+
+                    scope.$on('$destroy', function(e) {
+
+                    });
+
+
+                    // HANDLE MESSAGES
+
+
+
+                    // WATCHERS
+                    var watchRoleId = scope.$watch('currentRoleId', function (newValue, oldValue) {
+
+                        // Do we have a role
+                        if (newValue !== null) {
+
+                            // set the current role data
+                            scope._setCurrentRoleData(newValue);
+
+                            // make a local copy of the users
+                            scope.massAssignUsers = angular.copy(scope.users);
+
+                            // sort the users into two groups.
+                            // Ones that have the current role and ones that don't
+                            scope.__sortUsers(scope.massAssignUsers);
+
+                        }
+                    });
+
+                    var watchUsers = scope.$watchCollection('users', function (newValue, oldValue) {
+
+                        // Do we have a role
+                        if (scope.currentRole !== null) {
+
+                            // make a local copy of the users
+                            scope.massAssignUsers = angular.copy(newValue);
+
+                            // sort the users into two groups.
+                            // Ones that have the current role and ones that don't
+                            scope.__sortUsers(scope.massAssignUsers);
+                        }
+                    });
+                }
+            }
+    }])
+    .directive('filterUsers', ['MODAUTH_ASSET_PATH', function(MODAUTH_ASSET_PATH) {
+
+        return {
+            restrict: 'E',
+            templateUrl: MODAUTH_ASSET_PATH + 'views/filter-users.html',
+            scope: {
+                filterViewBy: '=',
+                filterProp: '=',
+                filterValue: '=',
+                orderBy: '=',
+                orderByReverse: '='
+            }
+        }
+    }])
     .directive('massAssignUsers', ['MODAUTH_ASSET_PATH', 'accessManagementEventsService',
         function (MODAUTH_ASSET_PATH, accessManagementEventsService) {
 
@@ -2465,7 +2741,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                     // Create a short names
                     scope.es = accessManagementEventsService.assignMassUsersEvents;
-
 
                     // PUBLIC VARS
                     // Stores sorted users that don't have the current role
@@ -2736,6 +3011,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
             restrict: 'E',
             templateUrl: MODAUTH_ASSET_PATH + 'views/select-app.html',
             scope: {
+                labelText: '@',
                 appModel: '=appModel',
                 apps: '=apps'
             }
@@ -2747,8 +3023,9 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
             restrict: 'E',
             templateUrl: MODAUTH_ASSET_PATH + 'views/select-role.html',
             scope: {
-                roleModel: '=roleModel',
-                roles: '=roles'
+                labelText: '@',
+                roleModel: '=',
+                roles: '='
             }
         }
     }])
@@ -2931,13 +3208,16 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 selectRoleSuccess: 'select:role:success'
 
             },
+            assignUserRoleEvents: {
+                assignRole: 'assign:role',
+                unassignRole: 'unassign:role',
+                removeRoleUsers: 'remove:role:users'
+            },
             selectRolesEvents: {
 
             },
             assignMassUsersEvents: {
-                assignRole: 'assign:role',
-                unassignRole: 'unassign:role',
-                removeRoleUsers: 'remove:role:users'
+
             }
         }
     }])
@@ -3019,6 +3299,31 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
             angular.forEach(fieldList, function (listValue, listKey) {
                 filtered[listKey] = items[listValue];
             });
+            return filtered;
+        }
+    }])
+    .filter('dfFilterBy', [function() {
+        return function (items, options) {
+
+            var filtered = [];
+
+            // There is nothing to base a filter off of
+            if (!options) {return items};
+
+            if (!options.field) {return items};
+            if (!options.value) {return items};
+            if (!options.regex) {
+                options.regex = new RegExp(options.value)
+            }
+
+
+            angular.forEach(items, function(item) {
+                if (options.regex.test(item[options.field])) {
+
+                    filtered.push(item)
+                }
+            });
+
             return filtered;
         }
     }]);

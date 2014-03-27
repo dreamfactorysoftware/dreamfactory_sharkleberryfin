@@ -74,11 +74,11 @@
                             <input type="checkbox" id="is-sys-admin" data-ng-model="user.is_sys_admin">
                         </div>
                         <div class="form-group">
-                            <select-role roles="roles" role-model="user.role_id"></select-role>
+                            <select-role roles="roles" role-model="user.role_id" label-text="Select Role"></select-role>
                         </div>
 
                         <div class="form-group">
-                            <select-app app-model="user.default_app_id" apps="apps"></select-app>
+                            <select-app app-model="user.default_app_id" apps="apps" label-text="Select Default App"></select-app>
                         </div>
 
                         <div class="form-group">

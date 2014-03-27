@@ -1,0 +1,41 @@
+<div>
+    <form>
+        <div class="form-group">
+            <label for="view-by">View By</label>
+            <select id="view-by" data-ng-model="filterViewBy">
+                <option value="email">Email</option>
+                <option value="display_name">Display Name</option>
+                <option value="id">Id</option>
+                <!--
+                <option value="created_on">Created Date</option>
+                <option value="last_modified">Last Modified Date</option>
+                -->
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="filter-by-prop">Filter By</label>
+            <select id="filter-by-prop" data-ng-model="filterProp">
+                <option value="email">Email</option>
+                <option value="display_name">Display Name</option>
+                <option value="id">Id</option>
+                <!--
+                <option value="created_on">Created Date</option>
+                <option value="last_modified">Last Modified Date</option>
+                -->
+            </select>
+
+            <input type="text" id="filter-by-value" data-ng-model="filterValue" placeholder="Enter String Value">
+        </div>
+
+        <div class="form-group">
+            <label for="order-by">Order by</label>
+            <select id="order-by" data-ng-model="orderBy">
+                <option value="email">Email</option>
+                <option value="display_name">Display Name</option>
+                <option value="id">Id</option>
+            </select>
+            <input type="checkbox" data-ng-model="orderByReverse">
+        </div>
+    </form>
+</div>
