@@ -3,31 +3,56 @@
         <span class="navbar-brand">Assign Users/Roles</span>
     </div>
 
-    <div class="form-group">
-        <select-role roles="roles" role-model="currentRoleId" label-text="Select Role"></select-role>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h4 class="panel-title">Set Role</h4>
+        </div>
+        <div class="panel-body">
+            <select-role roles="roles" role-model="currentRoleId" label-text="Select Role"></select-role>
+        </div>
     </div>
 
 
-    <filter-users filter-view-by="filter.uaViewBy" filter-prop="filter.uaUserProp" filter-value="filter.uaUserValue"
+    <filter-users section-title="Filter Unassigned Users" filter-view-by="filter.uaViewBy"
+                  filter-prop="filter.uaUserProp" filter-value="filter.uaUserValue"
                   order-by="filter.uaOrderBy" order-by-reverse="filter.uaOrderByReverse"></filter-users>
 
-    <filter-users filter-view-by="filter.aViewBy" filter-prop="filter.aUserProp" filter-value="filter.aUserValue"
+
+    <filter-users section-title="Filter Assigned Users" filter-view-by="filter.aViewBy" filter-prop="filter.aUserProp"
+                  filter-value="filter.aUserValue"
                   order-by="filter.aOrderBy" order-by-reverse="filter.aOrderByReverse"></filter-users>
 
 
-    <div class="row well-sm">
-        <div class="col-sm-5 col-xs-12 well no-padding"
-             style="background: #fff; height: 380px; overflow-x: hidden; overflow-y:scroll;">
-            <ul>
-                <li class="xs-padding sm-padding-h" data-ng-class="user.dfUISelected ? 'record-selected' : ''"
-                    data-ng-click="toggleUserSelected(user)"
-                    data-ng-repeat="user in usersWithOutRole | dfFilterBy:{'field':filter.uaUserProp, 'value':filter.uaUserValue} | orderObjectBy:filter.uaOrderBy:filter.uaOrderByReverse">
-                    <span data-ng-if="filter.uaViewBy === 'email'">{{user.email}}</span>
-                    <span data-ng-if="filter.uaViewBy === 'display_name'">{{user.display_name}}</span>
-                    <span data-ng-if="filter.uaViewBy === 'id'">{{user.id}}</span>
-                </li>
-            </ul>
+    <div class="row">
+        <div class="col-sm-5 col-xs-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 style="display: inline" class="panel-title">Unassigned Users</h4>
+                    <button type="button" class="btn btn-default btn-xs pull-right" data-ng-click="toggleAllUsers(usersWithOutRole)">Toggle All</button>
+                </div>
+                <div style="max-height: 350px; overflow-y: scroll">
+                    <table class="table">
+                        <tr>
+                            <th data-ng-model="filter.uaViewBy" df-capitalize-first><strong>{{filter.uaViewBy}}</strong></th>
+                            <th><strong>Current Role</strong></th>
+                        </tr>
+                        <tr data-ng-class="user.dfUISelected ? 'record-selected-role-user' : ''"
+                            data-ng-click="toggleUserSelected(user)"
+                            data-ng-repeat="user in usersWithOutRole | dfFilterBy:{'field':filter.uaUserProp, 'value':filter.uaUserValue} | orderObjectBy:filter.uaOrderBy:filter.uaOrderByReverse">
+                            <td>
+                                <span data-ng-if="filter.uaViewBy === 'email'">{{user.email}}</span>
+                                <span data-ng-if="filter.uaViewBy === 'display_name'">{{user.display_name}}</span>
+                                <span data-ng-if="filter.uaViewBy === 'id'">{{user.id}}</span>
+                            </td>
+                            <td>{{user.role_name}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
         </div>
+
+
         <div class="col-sm-2 col-xs-12">
             <button type="button" data-ng-click="assignRole()" class="btn btn-default btn-block"><i
                     class="fa fa-forward"></i></button>
@@ -35,17 +60,32 @@
                     class="fa fa-backward"></i></button>
         </div>
 
-        <div class="col-sm-5 col-xs-12 well no-padding"
-             style="background: #fff; height: 380px; overflow-x: hidden; overflow-y:scroll;">
-            <ul>
-                <li class="xs-padding sm-padding-h" data-ng-class="user.dfUISelected ? 'record-selected' : ''"
-                    data-ng-click="toggleUserSelected(user)"
-                    data-ng-repeat="user in usersWithRole | dfFilterBy:{'field':filter.aUserProp, 'value':filter.aUserValue} | orderObjectBy:filter.aOrderBy:filter.aOrderByReverse">
-                    <span data-ng-if="filter.aViewBy === 'email'">{{user.email}}</span>
-                    <span data-ng-if="filter.aViewBy === 'display_name'">{{user.display_name}}</span>
-                    <span data-ng-if="filter.aViewBy === 'id'">{{user.id}}</span>
-                </li>
-            </ul>
+
+        <div class="col-sm-5 col-xs-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 style="display: inline" class="panel-title">Assigned Users</h4>
+                    <button type="button" class="btn btn-default btn-xs pull-right" data-ng-click="toggleAllUsers(usersWithRole)">Toggle All</button>
+                </div>
+                <div style="max-height: 350px; overflow-y: scroll">
+                    <table class="table">
+                        <tr>
+                            <th><strong>{{filter.aViewBy}}</strong></th>
+                            <th><strong>Current Role</strong></th>
+                        </tr>
+                        <tr data-ng-class="user.dfUISelected ? 'record-selected-role-user' : ''"
+                            data-ng-click="toggleUserSelected(user)"
+                            data-ng-repeat="user in usersWithRole | dfFilterBy:{'field':filter.aUserProp, 'value':filter.aUserValue} | orderObjectBy:filter.aOrderBy:filter.aOrderByReverse">
+                            <td>
+                                <span data-ng-if="filter.aViewBy === 'email'">{{user.email}}</span>
+                                <span data-ng-if="filter.aViewBy === 'display_name'">{{user.display_name}}</span>
+                                <span data-ng-if="filter.aViewBy === 'id'">{{user.id}}</span>
+                            </td>
+                            <td>{{user.role_name}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>

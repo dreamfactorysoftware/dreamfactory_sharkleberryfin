@@ -103,6 +103,10 @@ $btn-link-disabled-color: $gray-light;
   background: $context-selected;
 }
 
+.record-selected-role-user {
+  background: $context-selected !important;
+}
+
 
 
 .record-id {

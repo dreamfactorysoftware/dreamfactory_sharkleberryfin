@@ -41,6 +41,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     $scope.viewConfigMasterActive = false;
                     
                     $scope.toggleModuleNavigationBool = true;
+
                     $scope.roles = [];
                     $scope.users = [];
                     $scope.apps = [];
@@ -135,8 +136,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         $scope._toggleViewRolesMaster(false);
                         $scope._toggleViewAssignMaster(false);
                     };
-
-
 
                     $scope._toggleModuleNavigation = function () {
 
@@ -275,24 +274,26 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     $scope._openUsersMaster = function () {
 
                         $scope._toggleViewUsersMasterActive();
+                        $scope.toggleModuleNavigationBool = true;
                     };
 
                     $scope._openRolesMaster = function () {
 
                         $scope._toggleViewRolesMasterActive();
+                        $scope.toggleModuleNavigationBool = true;
                     };
 
                     $scope._openAssignMaster= function () {
 
                         $scope._toggleViewAssignMasterActive();
+                        $scope.toggleModuleNavigationBool = true;
                     };
 
                     $scope._openConfigMaster = function () {
 
                         $scope._toggleViewConfigMasterActive();
+                        $scope.toggleModuleNavigationBool = true;
                     };
-
-
 
 
 
@@ -2499,6 +2500,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     // UI Interface
                     scope.toggleUserSelected = function (userDataObj) {
 
+                        console.log('asdfasdf')
                         scope._toggleUserSelected(userDataObj);
                     };
 
@@ -2511,6 +2513,15 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                         scope._unassignRole();
                     };
+
+                    scope.toggleAllUsers = function (usersDataArr) {
+
+                        if (!scope._isArrayEmpty(usersDataArr)) {
+                            scope._toggleAllUsers(usersDataArr);
+                        }
+                    };
+
+
 
 
                     // PRIVATE API
@@ -2528,10 +2539,12 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                             if (obj.role_id != scope.currentRole.id) {
 
                                 // it doesn't
+                                obj['role_name'] = scope._getRoleName(obj.role_id);
                                 scope.usersWithOutRole.push(obj);
                             } else {
 
                                 // it does
+                                obj['role_name'] = scope._getRoleName(obj.role_id);
                                 scope.usersWithRole.push(obj);
                             }
                         })
@@ -2639,6 +2652,11 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         scope.currentRole = scope._getCurrentRoleData(roleId);
                     };
 
+                    scope._isArrayEmpty = function (arr) {
+
+                        return arr.length == 0;
+                    };
+
 
                     // COMPLEX IMPLEMENTATION
                     // Function to toggle user selected
@@ -2667,6 +2685,28 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                             // Tell the main parent Directive Controller to save the selected users with the current role removed
                             scope.$emit(scope.es.unassignRole, scope._getSelectedUsersWithRole())
                         }
+                    };
+
+                    scope._getRoleName = function (roleId) {
+
+                        var roleName = 'Unassigned';
+
+                        angular.forEach(scope.roles, function (obj) {
+
+                            if (obj.id === roleId) {
+                                roleName = obj.name
+                            }
+
+                        });
+
+                        return roleName;
+                    };
+
+                    scope._toggleAllUsers = function (usersDataArr) {
+
+                        angular.forEach(usersDataArr, function (obj) {
+                            scope._toggleUserSelected(obj);
+                        })
                     };
 
                     scope.$on('$destroy', function(e) {
@@ -2719,6 +2759,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
             restrict: 'E',
             templateUrl: MODAUTH_ASSET_PATH + 'views/filter-users.html',
             scope: {
+                sectionTitle: '@',
                 filterViewBy: '=',
                 filterProp: '=',
                 filterValue: '=',

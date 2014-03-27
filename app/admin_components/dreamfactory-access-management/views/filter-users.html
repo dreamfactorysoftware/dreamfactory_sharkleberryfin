@@ -1,41 +1,60 @@
-<div>
-    <form>
-        <div class="form-group">
-            <label for="view-by">View By</label>
-            <select id="view-by" data-ng-model="filterViewBy">
-                <option value="email">Email</option>
-                <option value="display_name">Display Name</option>
-                <option value="id">Id</option>
-                <!--
-                <option value="created_on">Created Date</option>
-                <option value="last_modified">Last Modified Date</option>
-                -->
-            </select>
-        </div>
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <h4 class="panel-title">{{sectionTitle}}</h4>
+    </div>
+    <div class="panel-body">
+        <form role="form" class="form-inline">
+            <div style="margin-right: 10px;" class="form-group">
+                <label style="display:block" for="view-by">
+                    <small>View By</small>
+                </label>
+                <select id="view-by" data-ng-model="filterViewBy">
+                    <option value="email">Email</option>
+                    <option value="display_name">Display Name</option>
+                    <option value="id">Id</option>
+                    <!--
+                    <option value="created_on">Created Date</option>
+                    <option value="last_modified">Last Modified Date</option>
+                    -->
+                </select>
+            </div>
 
-        <div class="form-group">
-            <label for="filter-by-prop">Filter By</label>
-            <select id="filter-by-prop" data-ng-model="filterProp">
-                <option value="email">Email</option>
-                <option value="display_name">Display Name</option>
-                <option value="id">Id</option>
-                <!--
-                <option value="created_on">Created Date</option>
-                <option value="last_modified">Last Modified Date</option>
-                -->
-            </select>
+            <div style="margin-right: 10px;" class="form-group">
+                <label style="display:block" for="filter-by-prop">
+                    <small>Filter By</small>
+                </label>
+                <select id="filter-by-prop" data-ng-model="filterProp">
+                    <option value="email">Email</option>
+                    <option value="display_name">Display Name</option>
+                    <option value="id">Id</option>
+                    <!--
+                    <option value="created_on">Created Date</option>
+                    <option value="last_modified">Last Modified Date</option>
+                    -->
+                </select>
 
-            <input type="text" id="filter-by-value" data-ng-model="filterValue" placeholder="Enter String Value">
-        </div>
+                <input class="" type="text" data-ng-model="filterValue" placeholder="Enter Filter Value">
 
-        <div class="form-group">
-            <label for="order-by">Order by</label>
-            <select id="order-by" data-ng-model="orderBy">
-                <option value="email">Email</option>
-                <option value="display_name">Display Name</option>
-                <option value="id">Id</option>
-            </select>
-            <input type="checkbox" data-ng-model="orderByReverse">
-        </div>
-    </form>
+            </div>
+
+            <div style="margin-right: 10px;" class="form-group">
+                <label style="display:block" for="order-by">
+                    <small>Order by</small>
+                </label>
+                <select id="order-by" data-ng-model="orderBy">
+                    <option value="email">Email</option>
+                    <option value="display_name">Display Name</option>
+                    <option value="id">Id</option>
+                </select>
+
+            </div>
+
+            <div style="margin-right: 5px;" class="form-group">
+                <label style="display:block" for="order-by-reverse">
+                    <small>Reverse</small>
+                </label>
+                <input type="checkbox" id="order-by-reverse" data-ng-model="orderByReverse">
+            </div>
+        </form>
+    </div>
 </div>
