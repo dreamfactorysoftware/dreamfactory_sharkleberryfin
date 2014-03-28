@@ -1812,6 +1812,15 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         scope._openRoleRecord(userDataObj);
                     };
 
+                    /**
+                     * Interface for selecting a record
+                     */
+                    scope.selectRole = function (roleDataObj) {
+
+                        // Call complex implementation
+                        scope._selectRole(roleDataObj);
+                    };
+
 
                     // PRIVATE API
                     scope._toggleRolesList = function (stateBool) {
@@ -1841,6 +1850,16 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         scope.selectedRole = roleDataObj;
                     };
 
+                    /**
+                     * Toggle dfUISelected property on scope.role
+                     *
+                     * @private
+                     */
+                    scope._setRoleSelected = function (roleDataObj) {
+
+                        roleDataObj.dfUISelected = !roleDataObj.dfUISelected;
+                    };
+
 
 
                     // COMPLEX IMPLEMENTATION
@@ -1853,6 +1872,18 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     scope._closeRoleRecord = function () {
 
                         scope._toggleListActive();
+                    };
+
+                    /**
+                     * Selects record
+                     *
+                     * @emit selectRoleSuccess
+                     * @private
+                     */
+                    scope._selectRole = function (roleDataObj) {
+
+                        scope._setRoleSelected(roleDataObj);
+                        scope.$emit(scope.es.selectRoleSuccess)
                     };
 
 
@@ -3396,8 +3427,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
             var filtered = [];
 
-            console.log('asdfa');
-
             // There is nothing to base a filter off of
             if (!options) {return items};
 
@@ -3417,5 +3446,4 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
             return filtered;
         }
     }]);
-
 

@@ -1,7 +1,47 @@
 <div>
     <div data-ng-show="rolesListActive">
 
+
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">Roles</h4>
+                </div>
+
+
+                <table class="table">
+                    <tr>
+                        <th>Role ID</th>
+                        <th>Description</th>
+                        <th>Active</th>
+                        <th>Created On</th>
+                    </tr>
+
+                    <tr data-ng-repeat="role in roles"
+                        data-ng-class="role.dfUIUnsaved ? 'record-warning' : '' || role.dfUISelected ? 'record-selected' : '' ">
+
+                        <td class="record-id" data-ng-click="selectRole(role)"
+                            data-ng-class="role.dfUISelected ? 'record-id-selected' : ''">{{role.id}}
+                        </td>
+                        <td data-ng-click="openRoleRecord(role)">
+                            {{role.name}}
+                        </td>
+                        <td data-ng-click="openRoleRecord(role)">
+                            {{role.description}}
+                        </td>
+                        <td data-ng-click="openRoleRecord(role)">
+                            {{role.is_active}}
+                        </td>
+                        <td data-ng-click="openRoleRecord(role)">
+                            {{role.created_date}}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+        <!--
         <role-list-item role="role" data-ng-repeat="role in roles"></role-list-item>
+        -->
     </div>
 
     <div data-ng-show="roleDetailActive">
