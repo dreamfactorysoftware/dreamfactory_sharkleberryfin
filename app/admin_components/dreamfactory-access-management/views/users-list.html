@@ -1,9 +1,53 @@
 <div>
+
+
+    <filter-users data-ng-show="usersListActive" section-title="Filter Users" filter-view-by="''"
+                  filter-prop="filter.userProp" filter-value="filter.userValue"
+                  order-by="filter.userOrderBy" order-by-reverse="filter.userOrderByReverse"></filter-users>
+
+
     <div data-ng-show="usersListActive">
-        <user-list-item user="user" data-ng-repeat="user in users"></user-list-item>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h4 class="panel-title">Users</h4>
+            </div>
+
+
+            <table class="table">
+                <tr>
+                    <th>User ID</th>
+                    <th>Email</th>
+                    <th>Display Name</th>
+                    <th>Active</th>
+                    <th>Created On</th>
+                </tr>
+
+                <tr data-ng-repeat="user in users| dfFilterBy:{'field':filter.userProp, 'value':filter.userValue} | orderObjectBy:filter.userOrderBy:filter.userOrderByReverse"
+                    data-ng-class="user.dfUIUnsaved ? 'record-warning' : '' || user.dfUISelected ? 'record-selected' : '' ">
+
+                    <td class="record-id" data-ng-click="selectUser(user)"
+                        data-ng-class="user.dfUISelected ? 'record-id-selected' : ''">{{user.id}}
+                    </td>
+                    <td data-ng-click="openUserRecord(user)">
+                        {{user.display_name}}
+                    </td>
+                    <td data-ng-click="openUserRecord(user)">
+                        {{user.email}}
+                    </td>
+                    <td data-ng-click="openUserRecord(user)">
+                        {{user.is_active}}
+                    </td>
+                    <td data-ng-click="openUserRecord(user)">
+                        {{user.created_date}}
+                    </td>
+                </tr>
+            </table>
+        </div>
     </div>
 
+
     <div data-ng-show="userDetailActive">
+
         <!-- **Isolate Scope** have to pass in the roles -->
         <user-item-detail user="selectedUser" roles="roles" apps="apps"></user-item-detail>
     </div>

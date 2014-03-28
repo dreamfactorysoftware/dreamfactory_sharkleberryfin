@@ -101,7 +101,7 @@ article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, 
 
 /* line 102, ../sass/screen.scss */
 .record-selected {
-  background: #daf1f8;
+  background: #daf1f8 !important;
 }
 
 /* line 106, ../sass/screen.scss */
@@ -109,13 +109,13 @@ article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, 
   background: #daf1f8 !important;
 }
 
-/* line 113, ../sass/screen.scss */
+/* line 112, ../sass/screen.scss */
 .record-id {
   background-color: #a1a7b0;
   color: #fff;
 }
 
-/* line 118, ../sass/screen.scss */
+/* line 117, ../sass/screen.scss */
 .record-id-selected {
   background-color: #484e56;
 }

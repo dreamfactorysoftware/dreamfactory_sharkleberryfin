@@ -142,6 +142,13 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         $scope.toggleModuleNavigationBool = !$scope.toggleModuleNavigationBool;
                     };
 
+                    $scope._toggleEachRecord = function (recordsArr, stateBool) {
+
+                        angular.forEach(recordsArr, function(obj) {
+                            obj.dfUISelected = stateBool;
+                        })
+                    };
+
                     $scope._addSelectedProperty = function (recordObj) {
 
                         recordObj['dfUISelected'] = false;
@@ -610,6 +617,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                         usersDataArr = usersDataArr || scope.users;
 
+
                         // Save all users to the remote system
                         scope._saveUsersToSystem(usersDataArr).then(
                             function (result) {
@@ -758,6 +766,14 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     scope.userDetailActive = false;
                     scope.selectedUser = null;
 
+                    scope.filter = {
+                        userViewBy: 'email',
+                        userProp: 'email',
+                        userValue: null,
+                        userOrderBy: 'email',
+                        userOrderByReverse: false
+                    };
+
 
                     //PUBLIC API
                     scope.openUserRecord = function (userDataObj) {
@@ -765,9 +781,29 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         scope._openUserRecord(userDataObj);
                     };
 
+                    /**
+                     * Interface for selecting a record
+                     */
+                    scope.selectUser = function (userDataObj) {
+
+                        // Call complex implementation
+                        scope._selectUser(userDataObj);
+                    };
+
 
 
                     // PRIVATE API
+
+                    /**
+                     * Toggle dfUISelected property on scope.user
+                     *
+                     * @private
+                     */
+                    scope._setUserSelected = function (userDataObj) {
+
+                        userDataObj.dfUISelected = !userDataObj.dfUISelected;
+                    };
+
                     scope._toggleUsersList = function (stateBool) {
 
                         scope.usersListActive = stateBool;
@@ -808,6 +844,18 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     scope._closeUserRecord = function () {
 
                         scope._toggleListActive();
+                    };
+
+                    /**
+                     * Selects record
+                     *
+                     * @emit selectUserSuccess
+                     * @private
+                     */
+                    scope._selectUser = function (userDataObj) {
+
+                        scope._setUserSelected(userDataObj);
+                        scope.$emit(scope.es.selectUserSuccess)
                     };
 
 
@@ -3268,7 +3316,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
             allowMassAdminUserDeletion: false,
             viewUsersAsTable: false,
             viewRolesAsTable: false,
-            recordsLimit: null,
+            recordsLimit: 10,
             recordsPerPage: 20,
             autoCloseUserDetail: true,
             autoCloseRoleDetail: true
@@ -3348,6 +3396,8 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
             var filtered = [];
 
+            console.log('asdfa');
+
             // There is nothing to base a filter off of
             if (!options) {return items};
 
@@ -3356,7 +3406,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
             if (!options.regex) {
                 options.regex = new RegExp(options.value)
             }
-
 
             angular.forEach(items, function(item) {
                 if (options.regex.test(item[options.field])) {
