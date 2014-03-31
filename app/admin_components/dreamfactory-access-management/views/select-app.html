@@ -1,6 +1,5 @@
 <div>
-    <label for="select-app">Select a default app:</label>
+    <label style="display: block;" for="select-app"><small>Select a default app</small></label>
     <select id="select-app" data-ng-model="appModel" data-ng-options="app.id as app.name for app in apps">
-        <option value="null">Choose a default app</option>
     </select>
 </div>

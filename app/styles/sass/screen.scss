@@ -84,6 +84,7 @@ $btn-link-disabled-color: $gray-light;
   @include border-radius(3px);
   background: #fff;
   margin-bottom: 5px;
+  cursor: hand;
 }
 
 .record:hover {
@@ -173,6 +174,10 @@ $btn-link-disabled-color: $gray-light;
 
 
 // Utility
+
+.make-block {
+  display: block !important;
+}
 
 .rounded {
   @include border-radius(3px);

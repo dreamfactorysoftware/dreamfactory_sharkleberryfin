@@ -1,0 +1,35 @@
+<tr>
+    <td colspan="5" bgcolor="#17191C">
+
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h4 style="display: inline" class="panel-title">Filters</h4>
+                <button type="button" class="btn btn-default btn-xs pull-right" data-ng-click="addFilter()">Add</button>
+
+            </div>
+
+            <table class="table">
+                <tr>
+
+                    <td colspan="1">
+                        <label>Choose Filter Operation: </label>
+                        <select class="form-control" data-ng-model="access.filterOp" data-ng-options="filterOp as filterOp for filterOp in filterOps"></select>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Field</th>
+                    <th>Operator</th>
+                    <th>Value</th>
+                    <th>Remove</th>
+                </tr>
+
+                <tr data-ng-repeat="filter in access.filters track by $index">
+                    <td><input class="form-control" type="text" data-ng-model="filter.name" /></td>
+                    <td><select class="form-control" data-ng-model="filter.operator" data-ng-options="operator as operator for operator in operators"></select> </td>
+                    <td><input class="form-control" type="text" data-ng-model="filter.value" /></td>
+                    <td><button type="button" class="btn btn default btn-danger" data-ng-click="removeFilter($index)">Remove</button></td>
+                </tr>
+            </table>
+        </div>
+    </td>
+</tr>

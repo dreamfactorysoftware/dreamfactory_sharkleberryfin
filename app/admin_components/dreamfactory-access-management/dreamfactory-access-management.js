@@ -25,8 +25,9 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 templateUrl: MODAUTH_ASSET_PATH + 'views/navigation.html'
             }
         }])
-    .directive('accessManagement', ['MODAUTH_ASSET_PATH', '$q', 'DreamFactory', 'accessManagementEventsService', 'accessManagementRulesService',
-        function (MODAUTH_ASSET_PATH, $q, DreamFactory, accessManagementEventsService, accessManagementRulesService) {
+
+    .directive('accessManagement', ['DSP_URL', 'MODAUTH_ASSET_PATH', '$http', '$q', 'DreamFactory', 'accessManagementEventsService', 'accessManagementRulesService',
+        function (DSP_URL, MODAUTH_ASSET_PATH, $http, $q, DreamFactory, accessManagementEventsService, accessManagementRulesService) {
 
             return {
                 restrict: 'E',
@@ -45,6 +46,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     $scope.roles = [];
                     $scope.users = [];
                     $scope.apps = [];
+                    $scope.services = [];
 
 
                     // Create a short name
@@ -58,6 +60,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                             $scope._getRoles();
                             $scope._getUsers();
                             $scope._getApps();
+                            $scope._getServices();
                         }
                     };
 
@@ -183,7 +186,8 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                         requestObj = requestObj || {
                             fields: '*',
-                            limit: $scope.rs.recordsLimit
+                            limit: $scope.rs.recordsLimit,
+                            related: 'role_service_accesses,role_system_accesses'
                         };
 
                         DreamFactory.api.system.getRoles(requestObj,
@@ -241,6 +245,41 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         return defer.promise;
                     };
 
+                    $scope._getServicesData = function (requestObj) {
+
+                        var defer = $q.defer();
+
+                        requestObj = requestObj || {};
+
+                        DreamFactory.api.system.getServices(requestObj,
+                        function (data) {
+
+                            defer.resolve(data);
+                        },
+                        function (error) {
+
+                            defer.resolve(error);
+                        });
+
+                        return defer.promise;
+                    };
+
+                    $scope._getServiceComponents = function(serviceDataObj) {
+
+                        if (!serviceDataObj) {
+                            throw 'AccessManagement Module Error: No Service Data Object Defined'
+                        }
+
+                        return $http.get(DSP_URL + '/rest/' + serviceDataObj.api_name + '/?app_name=admin&fields=*');
+                    };
+
+                    $scope._addStarDesignationForAllOptions = function () {
+
+                        return {id: 0, name: "*", type: ""};
+                    }
+
+
+
 
                     // COMPLEX IMPLEMENTATION
                     $scope._getRoles = function () {
@@ -277,6 +316,57 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                                 throw 'AccessManagement Module Error: ' + reject.error[0].message
                             });
                     };
+
+                    $scope._getServices = function () {
+
+                        $scope._getServicesData().then(
+                            function (result) {
+
+                                $scope.services = result.record;
+
+                                if ($scope.services.length > 0) {
+                                    angular.forEach($scope.services, function(obj) {
+
+                                        $scope._getServiceComponents(obj).then(
+                                            function(scResult) {
+
+                                                if (scResult.data.resource) {
+                                                    scResult.data.resource.unshift($scope._addStarDesignationForAllOptions());
+                                                }
+
+
+                                                obj['components'] = scResult
+
+                                            },
+                                            function(scReject) {
+
+                                                console.log(scReject);
+
+                                                //throw 'AccessManagement Module Error: ' + scReject.error[0].message
+                                            }
+                                        );
+                                    });
+                                }
+
+                                $scope.services.unshift($scope._addStarDesignationForAllOptions());
+
+                                var firstService = $scope.services[0];
+                                firstService['components'] = {
+                                    config: {},
+                                    data: {
+                                        resource:[]
+                                    }
+                                };
+
+                                firstService.components.data.resource = $scope._addStarDesignationForAllOptions();
+
+                            },
+                            function (reject) {
+
+                                throw 'AccessManagement Module Error: ' + reject.error[0].message
+                            }
+                        );
+                    }
 
                     $scope._openUsersMaster = function () {
 
@@ -337,6 +427,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 }
             }
         }])
+
     .directive('usersMaster', ['$q', '$http', 'DSP_URL', 'MODAUTH_ASSET_PATH', 'DreamFactory', 'accessManagementRulesService', 'accessManagementEventsService',
         function ($q, $http, DSP_URL, MODAUTH_ASSET_PATH, DreamFactory, accessManagementRulesService, accessManagementEventsService) {
 
@@ -857,7 +948,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         scope._setUserSelected(userDataObj);
                         scope.$emit(scope.es.selectUserSuccess)
                     };
-
 
 
                     // HANDLE EVENTS
@@ -1423,6 +1513,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 }
             }
         }])
+
     .directive('rolesMaster', ['$q', 'MODAUTH_ASSET_PATH', 'DreamFactory', 'accessManagementRulesService', 'accessManagementEventsService',
         function ($q, MODAUTH_ASSET_PATH, DreamFactory, accessManagementRulesService, accessManagementEventsService) {
 
@@ -1432,7 +1523,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 scope: true,
                 templateUrl: MODAUTH_ASSET_PATH + 'views/roles-master.html',
                 link: function (scope, elem, attrs) {
-
 
                     // Create short names
                     scope.es = accessManagementEventsService.rolesEvents;
@@ -1802,6 +1892,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 scope: true,
                 link: function(scope, elem, attrs) {
 
+
                     scope.rolesListActive = true;
                     scope.roleDetailActive = false;
                     scope.selectedRole = null;
@@ -1892,6 +1983,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
 
                         scope._closeRoleRecord();
                     });
+
                 }
             }
     }])
@@ -1955,7 +2047,8 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 scope: {
                     role: '=',
                     users: '=',
-                    apps: '='
+                    apps: '=',
+                    services: '='
                 },
                 link: function(scope, elem, attrs) {
 
@@ -2049,9 +2142,8 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                      */
                     scope._makeRequest = function (requestDataObj, fieldsDataStr, relatedDataStr) {
 
-                        var fields = fields || null,
-                            related = related || null;
-
+                        var fields = fieldsDataStr || null,
+                            related = relatedDataStr || null;
 
                         return {
                             id: requestDataObj.id,
@@ -2073,7 +2165,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                         var defer = $q.defer();
 
                         DreamFactory.api.system.updateRole(
-                            scope._makeRequest(roleDataObj, '*'),
+                            scope._makeRequest(roleDataObj, '*', 'role_service_accesses,role_system_accesses'),
                             function (data) {
 
                                 defer.resolve(data);
@@ -2260,8 +2352,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     };
 
 
-
-
                     // COMPLEX IMPLEMENTATION
 
                     /**
@@ -2323,12 +2413,14 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                             // Success
                             function (result) {
 
+
+
                                 // Broadcast a message to child directives that we are saving
                                 // and they should run their save routines
                                 scope.$broadcast(scope.es.saveRole);
 
                                 // Set the form to pristine
-                                scope['role-edit-' + scope.role.id].$setPristine();
+                                scope[scope.formName].$setPristine();
 
                                 // check if the form is pristine
                                 // if so sets dfUIUnsaved property to false
@@ -2531,6 +2623,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 }
             }
         }])
+
     .directive('assignUserRoleMaster', ['MODAUTH_ASSET_PATH', 'accessManagementEventsService',
         function (MODAUTH_ASSET_PATH, accessManagementEventsService) {
 
@@ -2579,7 +2672,6 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                     // UI Interface
                     scope.toggleUserSelected = function (userDataObj) {
 
-                        console.log('asdfasdf')
                         scope._toggleUserSelected(userDataObj);
                     };
 
@@ -2832,6 +2924,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 }
             }
     }])
+
     .directive('filterUsers', ['MODAUTH_ASSET_PATH', function(MODAUTH_ASSET_PATH) {
 
         return {
@@ -2847,293 +2940,14 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
             }
         }
     }])
-    .directive('massAssignUsers', ['MODAUTH_ASSET_PATH', 'accessManagementEventsService',
-        function (MODAUTH_ASSET_PATH, accessManagementEventsService) {
-
-            return {
-                restrict: 'E',
-                require: '^form',
-                templateUrl: MODAUTH_ASSET_PATH + 'views/mass-assign-users.html',
-                scope: true,
-                link: function (scope, elem, attrs, form) {
-
-                    scope.totalSelectedUsers = 0;
-
-                    // Create a short names
-                    scope.es = accessManagementEventsService.assignMassUsersEvents;
-
-                    // PUBLIC VARS
-                    // Stores sorted users that don't have the current role
-                    scope.usersWithOutRole = [];
-
-                    // Stores sorted users that do have the current role
-                    scope.usersWithRole = [];
-
-
-                    // PUBLIC API
-                    // UI Interface
-                    scope.toggleUserSelected = function (userDataObj) {
-
-                        scope._toggleUserSelected(userDataObj);
-                    };
-
-                    scope.assignRole = function () {
-
-                        scope._assignRole();
-                    };
-
-                    scope.unassignRole = function () {
-
-                        scope._unassignRole();
-                    };
-
-
-                    // PRIVATE API
-                    // Sort the users into two groups.  Users that have this
-                    // role and users that don't
-                    scope.__sortUsers = function (users) {
-
-                        // Reset our sorted arrays to empty
-                        scope.__setSortedEmpty();
-
-                        // Foreach user that was passed in
-                        angular.forEach(users, function (obj) {
-
-                            // does the user role id equal the current role id
-                            if (obj.role_id != scope.role.id) {
-
-                                // it doesn't
-                                scope.usersWithOutRole.push(obj);
-                            } else {
-
-                                // it does
-                                scope.usersWithRole.push(obj);
-                            }
-                        })
-                    };
-
-                    // Reset our sort arrays
-                    scope.__setSortedEmpty = function () {
-
-                        scope.usersWithOutRole = [];
-                        scope.usersWithRole = [];
-                    };
-
-                    // Set the role id to the current role on each selected user
-                    // that doesn't have the current role
-                    scope._getSelectedUsersWithOutRole = function () {
-
-                        var selectedUsers = [];
-
-                        angular.forEach(scope.usersWithOutRole, function (obj) {
-
-                            if (obj.dfUISelected) {
-                                obj.dfUIUnsaved = true;
-                                obj.role_id = scope.role.id;
-                                selectedUsers.push(obj);
-                                scope._toggleUserSelectedData(obj);
-
-                            }
-                        });
-
-                        if (selectedUsers.length > 0) {
-                            return selectedUsers;
-                        } else {
-                            throw 'Assign Role Error: No users selected.'
-                        }
-                    };
-
-                    // Set the role id to null/default role on each selected user
-                    // that has the current role
-                    scope._getSelectedUsersWithRole = function () {
-
-                        var selectedUsers = [];
-
-                        angular.forEach(scope.usersWithRole, function (obj) {
-
-                            if (obj.dfUISelected) {
-                                obj.dfUIUnsaved = true;
-                                obj.role_id = null;
-                                selectedUsers.push(obj);
-                                scope._toggleUserSelectedData(obj);
-                            }
-                        });
-
-                        if (selectedUsers.length > 0) {
-                            return selectedUsers;
-                        } else {
-                            throw 'Unassign Role Error: No users selected.'
-                        }
-                    };
-
-                    // Toggle user to be modified
-                    scope._toggleUserSelectedData = function (userDataObj) {
-
-                        userDataObj.dfUISelected = !userDataObj.dfUISelected;
-                        userDataObj.dfUISelected ? scope.totalSelectedUsers++ : scope.totalSelectedUsers--;
-                    };
-
-                    // Check if we have one or more selected users in array
-                    scope._checkForSelectedUsers = function (usersArr) {
-
-                        var haveUsers = false;
-
-                        // Foreach user in array
-                        angular.forEach(usersArr, function(obj) {
-
-                            // are they selected
-                            if (obj.dfUISelected) {
-
-                                // someone is selected
-                                haveUsers =  true;
-                            }
-                        });
-
-                        return haveUsers;
-                    };
-
-
-                    // COMPLEX IMPLEMENTATION
-                    // Function to toggle user selected
-                    scope._toggleUserSelected = function (userDataObj) {
-
-                        scope._toggleUserSelectedData(userDataObj);
-                    };
-
-                    // Function to assign the role
-                    scope._assignRole = function () {
-
-                        // check if any users are selected
-                        if (scope._checkForSelectedUsers(scope.usersWithOutRole)) {
-
-                            // Tell the main parent Directive Controller to save the selected users with the current role.
-                            scope.$emit(scope.es.assignRole, scope._getSelectedUsersWithOutRole());
-                        }
-                    };
-
-                    // Function to unassign the role
-                    scope._unassignRole = function () {
-
-                        // check if any users are selected
-                        if (scope._checkForSelectedUsers(scope.usersWithRole)) {
-
-                            // Tell the main parent Directive Controller to save the selected users with the current role removed
-                            scope.$emit(scope.es.unassignRole, scope._getSelectedUsersWithRole())
-                        }
-                    };
-
-                    scope.$on('$destroy', function(e) {
-                        watchUsers.call();
-                        watchSelected.call();
-                    });
-
-
-                    // HANDLE MESSAGES
-
-                    // Listen for parent to save record
-                    scope.$on(accessManagementEventsService.roleEvents.saveRole, function(e) {
-
-                        // check if we have and users selected
-                        if (scope.totalSelectedUsers > 0) {
-
-                            // we do so run the role asign/unassign functions
-                            scope._assignRole();
-                            scope._unassignRole();
-                        }
-                    });
-
-                    // Listen for parent to revert the record
-                    scope.$on(accessManagementEventsService.roleEvents.revertRole, function(e) {
-
-                        // Message received so loop through the users
-                        angular.forEach(scope.massAssignUsers, function(obj) {
-
-                            // if we find one that is selected
-                            if (obj.dfUISelected) {
-
-                                // toggle the selection
-                                scope._toggleUserSelected(obj);
-                            }
-                        })
-                    });
-
-                    // Listen for parent to remove a role
-                    scope.$on(accessManagementEventsService.roleEvents.removeRoleSuccess, function (e, successMessageObj) {
-
-                        // Do we want this directive to ask for user removal
-                        if (successMessageObj.assignMassUsers.removeUsers) {
-
-                            // toggle the users of this role selected
-                            angular.forEach(scope.usersWithRole, function(obj) {
-
-                                obj.dfUISelected = true;
-                            });
-
-                            // pass them up for deletion by the usersMaster directive
-                            scope.$emit(scope.es.removeRoleUsers, scope.usersWithRole);
-                        }
-
-                    });
-
-
-                    // WATCHERS AND INIT
-                    // watch scope.role on parent directive
-                    var watchRole = scope.$watch('role', function(newValue, oldValue) {
-
-                        // Do we have a role
-                        if (scope.role !== null) {
-
-                            // make a local copy of the users
-                            scope.massAssignUsers = angular.copy(scope.users);
-
-                            // sort the users into two groups.
-                            // Ones that have the current role and ones that don't
-                            scope.__sortUsers(scope.massAssignUsers);
-                        }
-                    });
-
-                    // watch scope.users from the top module
-                    var watchUsers = scope.$watchCollection('users', function (newValue, oldValue) {
-
-                        // Do we have a role
-                        if (scope.role !== null) {
-
-                            // make a local copy of the users
-                            scope.massAssignUsers = angular.copy(newValue);
-
-                            // sort the users into two groups.
-                            // Ones that have the current role and ones that don't
-                            scope.__sortUsers(scope.massAssignUsers);
-                        }
-                    });
-
-                    // watch the totalSelectedUsers value
-                    var watchSelected = scope.$watch('totalSelectedUsers', function (newValue, oldValue) {
-
-                        // If it changes and its not equal to 0
-                        if (newValue !== 0) {
-
-                            // we set the form to dirty because it will trigger the
-                            // role editor to do what it needs to with the dfUIUnsaved
-                            // state on save/revert
-                            form.$setDirty();
-
-                            // we also set the dfUIUnsaved to trigger the UI unsaved state
-                            // basically turn the role record to warning color in the UI
-                            scope.dfUIUnsaved = true;
-                        }
-                    });
-                }
-            }
-        }])
     .directive('selectApp', ['MODAUTH_ASSET_PATH', function (MODAUTH_ASSET_PATH) {
         return {
             restrict: 'E',
             templateUrl: MODAUTH_ASSET_PATH + 'views/select-app.html',
             scope: {
                 labelText: '@',
-                appModel: '=appModel',
-                apps: '=apps'
+                appModel: '=',
+                apps: '='
             }
         }
     }])
@@ -3149,6 +2963,319 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
             }
         }
     }])
+    .directive('addService', ['MODAUTH_ASSET_PATH', function (MODAUTH_ASSET_PATH) {
+
+        return {
+            restrict: 'E',
+            templateUrl: MODAUTH_ASSET_PATH + 'views/select-service.html',
+            scope: {
+                services: '=',
+                role: '='
+            },
+            link: function(scope, elem, attrs) {
+
+                // PUBLIC API
+                scope.addServiceAccess = function () {
+
+                    scope._addServiceAccess();
+                };
+
+
+                // PRIVATE API
+                scope._createAccessModel = function() {
+
+                    return {
+                        access: "No Access",
+                        component: '*',
+                        created_by_id: null,
+                        created_date: null,
+                        id: null,
+                        filters: [],
+                        filter_op: 'AND',
+                        last_modified_by_id: null,
+                        last_modified_date: null,
+                        role_id: scope.role.id,
+                        service_id: null
+                    }
+                };
+
+
+                scope._addServiceAccessData = function () {
+
+                    scope.role.role_service_accesses.push(scope._createAccessModel());
+
+                };
+
+                scope._removeService = function (index) {
+
+                    scope.role.role_service_accesses.splice(index, 1);
+                }
+
+                // TODO: Set event in event service
+                scope.$on('remove:access', function (e, o) {
+
+                    scope._removeService(o)
+                });
+
+
+
+                // COMPLEX IMPLEMENTATION
+
+                scope._addServiceAccess = function () {
+
+                    scope._addServiceAccessData();
+                };
+
+                scope.$watch('role', function(newValue, oldValue) {
+
+                    //console.log(newValue.role_services_accesses);
+
+                })
+
+            }
+        }
+    }])
+    .directive('serviceAccessEdit',['MODAUTH_ASSET_PATH', '$compile',  function(MODAUTH_ASSET_PATH, $compile) {
+
+        return {
+            restrict: 'A',
+            replace: true,
+            templateUrl: MODAUTH_ASSET_PATH + 'views/service-access-edit.html',
+            scope: {
+                access: '=',
+                services: '=',
+                index: '='
+            },
+            link: function (scope, elem, attrs) {
+
+                scope.currentServiceComponents = [];
+                scope.accessFiltersActive = false;
+
+
+                // PUBIC API
+                scope.removeServiceAccess = function () {
+
+                    scope._confirmRemoveAccess() ? scope._removeServiceAccess() : false;
+                };
+
+                scope.toggleAccessFilters = function () {
+
+                    scope._toggleAccessFilters();
+                };
+
+
+
+                // PRIVATE API
+                scope._getServiceData = function (serviceIdInt) {
+
+                    var service = false;
+
+                    angular.forEach(scope.services, function (obj) {
+
+                        if (obj.id === serviceIdInt || obj.id === '' || obj.id === 0) {
+
+                            service = obj;
+                        }
+                    });
+
+                    return service;
+                };
+
+                scope._confirmRemoveAccess = function() {
+
+                    return confirm('Would you like to remove access for ' + scope._getServiceName(scope.access.service_id));
+                };
+
+                scope._getServiceName = function(serviceIdInt) {
+
+                    var serviceDataObj = scope._getServiceData(serviceIdInt),
+                        name;
+
+                    if (serviceDataObj)  {
+
+                        if (serviceDataObj.name === '*') {
+                            name = 'All Services'
+                        }else {
+                            name = serviceDataObj.name;
+                        }
+
+                    }
+
+                    return name
+                };
+
+                scope._setAccessServiceId = function () {
+
+                    if (scope.access.service_id == null) {
+                        scope.access.service_id = 0
+                    }
+                };
+
+                scope._setCurrentServiceComponents = function (serviceDataObj) {
+
+                    //console.log(serviceDataObj);
+
+                    if (serviceDataObj.components || serviceDataObj.id === 0) {
+                        scope.currentServiceComponents = serviceDataObj.components.data.resource;
+                    }else {
+                        throw 'AccessManagement Roles Warning: No service components found for ' + serviceDataObj.name;
+                    }
+                };
+
+                scope._addAccessFilterTable = function () {
+
+                    var html = '<tr service-access-filters></tr>'
+                    $(elem).after($compile(html)(scope));
+                };
+
+                scope._removeAccessFilterTable = function () {
+
+                    $(elem).next().remove();
+                };
+
+                scope._toggleAccessFiltersActive = function () {
+
+                    scope.accessFiltersActive = !scope.accessFiltersActive;
+                }
+
+
+
+                //COMPLEX IMPLEMENTATION
+                scope._getService = function (serviceIdInt) {
+
+                    scope._setCurrentServiceComponents(scope._getServiceData(serviceIdInt));
+                    scope._setAccessServiceId();
+                };
+
+                scope._removeServiceAccess = function () {
+
+                    scope.$emit('remove:access', scope.index);
+                };
+
+                scope._toggleAccessFilters = function () {
+
+                    scope._toggleAccessFiltersActive();
+                    scope.accessFiltersActive ? scope._addAccessFilterTable() : scope._removeAccessFilterTable();
+                };
+
+
+                // WATCHERS AND INIT
+
+                scope.$watchCollection('access', function(newValue, oldValue) {
+
+                    //console.log(scope.access)
+
+                    scope._getService(scope.access.service_id);
+                    scope._setAccessServiceId();
+
+                });
+
+
+            }
+        }
+
+    }])
+    .directive('serviceAccessFilters', ['MODAUTH_ASSET_PATH', function(MODAUTH_ASSET_PATH) {
+
+        return {
+            restrict: 'A',
+            replace: true,
+            scope: true,
+            templateUrl: MODAUTH_ASSET_PATH + 'views/service-access-filters.html',
+            link: function(scope, elem, attrs) {
+
+                scope.filterOps = ['AND', 'OR'];
+
+                scope.operators = [
+                    "=",
+                    "!=",
+                    ">",
+                    "<",
+                    ">=",
+                    "<=",
+                    "in",
+                    "not in",
+                    "starts with",
+                    "ends with",
+                    "contains",
+                    "is null",
+                    "is not null"
+                ];
+
+
+
+                // PUBLIC API
+                scope.addFilter = function () {
+
+                    scope._addFilter();
+                };
+
+                scope.removeFilter = function (index) {
+
+                    scope._confirmRemoveFilter() ? scope._removeFilter(index) : false;
+                };
+
+
+
+                // PRIVATE API
+                scope._createFilterModel = function () {
+
+                    return {
+                        name: '',
+                        operator: '',
+                        value: ''
+                    }
+                };
+
+                scope._hasFilters = function(accessDataObj) {
+
+                    return !!accessDataObj.filters;
+                };
+
+                scope._confirmRemoveFilter = function () {
+
+                    return confirm('Remove Filter?');
+                }
+
+                scope._addFilterData = function () {
+
+                    if (scope._hasFilters(scope.access)) {
+                        scope.access.filters.push(scope._createFilterModel());
+                    }else {
+                        scope.access['filters'] = [];
+                        scope.access.filters.push(scope._createFilterModel());
+                    }
+                };
+
+                scope._removeFilterData = function (index) {
+
+                    scope.access.filters.splice(index, 1);
+                };
+
+
+
+                //COMPLEX IMPLEMENTATION
+                scope._addFilter = function () {
+
+                    scope._addFilterData();
+                };
+
+                scope._removeFilter = function (index) {
+
+                    scope._removeFilterData(index);
+                };
+
+
+
+
+                //WATCHERS AND INIT
+
+
+
+            }
+        }
+    }])
+
     .directive('configMaster', ['MODAUTH_ASSET_PATH', 'accessManagementRulesService', function(MODAUTH_ASSET_PATH, accessManagementRulesService) {
 
         return {
@@ -3244,6 +3371,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
                 }
             }
     }])
+
     .service('accessManagementEventsService', [function () {
 
         return {
@@ -3347,7 +3475,7 @@ angular.module('dfAccessManagement', ['ngRoute', 'ngDreamFactory', 'ngAnimate'])
             allowMassAdminUserDeletion: false,
             viewUsersAsTable: false,
             viewRolesAsTable: false,
-            recordsLimit: 10,
+            recordsLimit: 20,
             recordsPerPage: 20,
             autoCloseUserDetail: true,
             autoCloseRoleDetail: true

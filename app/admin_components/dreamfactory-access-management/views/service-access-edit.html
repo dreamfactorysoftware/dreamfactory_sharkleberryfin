@@ -1,0 +1,23 @@
+<tr>
+    <td>
+        <select id="select-service" data-ng-model="access.service_id"
+                data-ng-options="service.id as service.name for service in services">
+        </select>
+    </td>
+    <td>
+        <select id="select-service-component" data-ng-model="access.component"
+                data-ng-options="component.name as component.name for component in currentServiceComponents">
+        </select>
+    </td>
+    <td>
+        <select id="select-service-access" data-ng-model="access.access">
+            <option value='Full Access' selected>Full Access</option>
+            <option value='Read and Write' selected>Read and Write</option>
+            <option value='Read Only' selected>Read Only</option>
+            <option value='Write Only' selected>Write Only</option>
+            <option value='No Access' selected>No Access</option>
+        </select>
+    </td>
+    <td><button type="button" class="btn btn default" data-ng-click="toggleAccessFilters()">Filters</button></td>
+    <td><button type="button" class="btn btn-default btn-danger btn-sm" data-ng-click="removeServiceAccess()">Remove</button></td>
+</tr>

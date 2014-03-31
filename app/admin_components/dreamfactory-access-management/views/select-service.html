@@ -1,0 +1,60 @@
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <h4 style="display: inline" class="panel-title">Assign Role Services Access</h4>
+        <button type="button" class="btn btn-default btn-xs pull-right" data-ng-click="addServiceAccess()">Add</button>
+    </div>
+
+
+    <table class="table">
+        <tr>
+            <th>Service</th>
+            <th>Component</th>
+            <th>Access</th>
+            <th>Advanced Filters</th>
+            <th>Remove</th>
+        </tr>
+
+        <tr service-access-edit data-ng-repeat="access in role.role_service_accesses track by $index" index="$index" access="access" services="services"></tr>
+
+    </table>
+</div>
+
+
+<!--
+<div>
+    <div class="form-group">
+        <label style="display: block;" for="select-service">
+            <small>{{labelsText[0]}}</small>
+        </label>
+        <select id="select-service" data-ng-model="serviceModel"
+                data-ng-options="service as service.name for service in services">
+        </select>
+    </div>
+
+    <div class="form-group">
+
+
+        <label style="display: block;" for="select-service-component">
+            <small>{{labelsText[1]}}</small>
+        </label>
+        <select id="select-service-component" data-ng-model="serviceModel.service_access.component"
+                data-ng-options="component.name as component.name for component in serviceModel.components.data.resource">
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label style="display: block;" for="select-service-access">
+            <small>{{labelsText[2]}}</small>
+        </label>
+        <select id="select-service-access" data-ng-model="serviceModel.service_access.access">
+            <option value='Full Access' selected>Full Access</option>
+            <option value='Read and Write' selected>Read and Write</option>
+            <option value='Read Only' selected>Read Only</option>
+            <option value='Write Only' selected>Write Only</option>
+            <option value='No Access' selected>No Access</option>
+        </select>
+    </div>
+
+    <button type="button" class="btn btn-default" data-ng-click="addAccess()">Add Service Access</button>
+</div>
+-->
